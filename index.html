@@ -215,7 +215,26 @@ const defaultAccounts=[
  {id:'e540',code:'540',name:'ລາຍຈ່າຍຄ່າທຳນຽມ',type:'expense',fund:'fee',note:''}
 ];
 
-let db = {settings:{orgName:'ຫ້ອງການ/ໜ່ວຍງານ',currency:'ກີບ',opening:{budget:0,academic:0,support:0,fee:0}},funds:defaultFunds,accounts:defaultAccounts,transactions:[],audit:[]};
+function loadDB() {
+  try {
+    const stored = localStorage.getItem(KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // ປ້ອງກັນກໍລະນີ Array ຫາຍໄປ
+      if (!parsed.transactions) parsed.transactions = [];
+      if (!parsed.funds) parsed.funds = defaultFunds;
+      if (!parsed.accounts) parsed.accounts = defaultAccounts;
+      if (!parsed.audit) parsed.audit = [];
+      if (!parsed.settings) parsed.settings = {orgName:'ຫ້ອງການ/ໜ່ວຍງານ',currency:'ກີບ',opening:{budget:0,academic:0,support:0,fee:0}};
+      return parsed;
+    }
+  } catch (e) {
+    console.error("Local storage error:", e);
+  }
+  return {settings:{orgName:'ຫ້ອງການ/ໜ່ວຍງານ',currency:'ກີບ',opening:{budget:0,academic:0,support:0,fee:0}},funds:defaultFunds,accounts:defaultAccounts,transactions:[],audit:[]};
+}
+
+let db = loadDB(); // ໂຫຼດຈາກ Local ກ່ອນສະເໝີປ້ອງກັນຂໍ້ມູນຫາຍຕອນ Refresh
 let currentPage = 'dashboard';
 let isFirstLoad = true;
 
@@ -223,9 +242,10 @@ let isFirstLoad = true;
 let txCurrentPage = 1;
 const TX_PER_PAGE = 50; // ກຳນົດໃຫ້ສະແດງໜ້າລະ 50 ລາຍການ
 
-// ຟັງຊັນບັນທຶກຂໍ້ມູນຂຶ້ນ Firebase
+// ຟັງຊັນບັນທຶກຂໍ້ມູນ (ບັນທຶກລົງເຄື່ອງພ້ອມ ແລະ ຂຶ້ນ Firebase ພ້ອມ)
 function saveDB() {
-  database.ref('treasury_data').set(db);
+  localStorage.setItem(KEY, JSON.stringify(db));
+  database.ref('treasury_data').set(db).catch(err => console.error("Firebase save error:", err));
 }
 
 // ດຶງຂໍ້ມູນແບບ Realtime ຈາກ Firebase
@@ -233,6 +253,15 @@ database.ref('treasury_data').on('value', (snapshot) => {
   const data = snapshot.val();
   if (data) {
     db = data;
+    
+    // ປ້ອງກັນ Firebase ລຶບ Array ທີ່ຫວ່າງເປົ່າ (ຖ້າບໍ່ມີລາຍການມັນຈະ return ມາເປັນ undefined)
+    if (!db.transactions) db.transactions = [];
+    if (!db.funds) db.funds = defaultFunds;
+    if (!db.accounts) db.accounts = defaultAccounts;
+    if (!db.audit) db.audit = [];
+    
+    // ອັບເດດ LocalStorage ໃຫ້ກົງກັບ Cloud ເພື່ອໃຫ້ຕອນ Refresh ມີຂໍ້ມູນສະເໝີ
+    localStorage.setItem(KEY, JSON.stringify(db));
   }
   
   // ອັບເດດໜ້າຈໍທັນທີເມື່ອມີຂໍ້ມູນປ່ຽນແປງ
@@ -242,6 +271,8 @@ database.ref('treasury_data').on('value', (snapshot) => {
     console.log("ເຊື່ອມຕໍ່ Realtime Database ສຳເລັດ!");
     isFirstLoad = false;
   }
+}, (error) => {
+   console.warn("ບໍ່ສາມາດດຶງຂໍ້ມູນຈາກ Firebase ໄດ້, ລະບົບຈະໃຊ້ຂໍ້ມູນໃນເຄື່ອງແທນ:", error);
 });
 
 function money(n){return Number(n||0).toLocaleString('en-US')}
@@ -804,10 +835,11 @@ function downloadBlob(content,name,type){const a=document.createElement('a');a.h
 function restoreData(ev){
  const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!x.transactions||!x.accounts||!x.funds)throw Error();db=x;saveDB();alert('ກູ້ຄືນຂໍ້ມູນສຳເລັດ');showPage(currentPage)}catch(e){alert('ໄຟລ໌ JSON ບໍ່ຖືກຕ້ອງ')}};r.readAsText(f)}
 
- function resetData(){
+function resetData(){
   myConfirm('ຈະລຶບຂໍ້ມູນລາຍການທັງໝົດ ແລະກັບໄປຄ່າເລີ່ມຕົ້ນ.\nຂໍ້ມູນທີ່ລຶບແລ້ວບໍ່ສາມາດກູ້ຄືນໄດ້, ແນ່ໃຈບໍ?', () => {
     localStorage.removeItem(KEY);
     db = loadDB(); 
+    saveDB(); // ຕ້ອງສັ່ງ saveDB ເພື່ອໄປລຶບຂໍ້ມູນໃນ Firebase ນຳ
     showPage('dashboard');
   });
 }

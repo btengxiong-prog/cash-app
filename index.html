@@ -298,8 +298,15 @@ document.querySelectorAll('.nav button').forEach(b=>b.addEventListener('click',(
 function showPage(page){
  currentPage=page;
  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
- const titles={dashboard:'ໜ້າຫຼັກ',cashbook:'ປື້ມຄັງເງິນສົດ',transactions:'ບັນທຶກຮັບ–ຈ່າຍ',accounts:'ໂຄງບັນຊີ',reports:'ລາຍງານ',settings:'ຕັ້ງຄ່າ'};
+ const titles={dashboard:'ໜ້າຫຼັກ',cashbook:'',transactions:'ບັນທຶກຮັບ–ຈ່າຍ',accounts:'ໂຄງບັນຊີ',reports:'ລາຍງານ',settings:'ຕັ້ງຄ່າ'};
  document.getElementById('pageTitle').textContent=titles[page];
+ 
+ // ເຊື່ອງຫົວຂໍ້ໜ້າ ແລະ ວັນທີເບື້ອງຊ້າຍ ຖ້າເປັນໜ້າປື້ມຄັງເງິນສົດ (ເພື່ອໃຫ້ເຫຼືອແຕ່ປຸ່ມເບື້ອງຂວາ)
+ if (page === 'cashbook') {
+     document.getElementById('pageTitle').parentElement.style.display = 'none';
+ } else {
+     document.getElementById('pageTitle').parentElement.style.display = 'block';
+ }
  
  // ຣີເຊັດປຸ່ມໃນ Topbar ໃຫ້ກັບມາເປັນປົກກະຕິທຸກຄັ້ງທີ່ປ່ຽນໜ້າ
  document.querySelector('.topbar .actions').innerHTML = '<button class="btn btn-light" onclick="backupData()">💾 Backup</button>';
@@ -497,10 +504,11 @@ function generateCashbook(){
  const month = document.getElementById('cbMonth').value;
  const periodText = month === 'all' ? `ປີ ${year}` : `ເດືອນ ${month}/${year}`;
  
- document.getElementById('cashbookContainer').innerHTML=`
+document.getElementById('cashbookContainer').innerHTML=`
   <div class="panel-body" style="padding-top:16px;">
-   <div class="report-title"><h2>${esc(db.settings.orgName)}</h2><p>ປື້ມຄັງເງິນສົດ (${periodText})</p></div>
+   <div class="report-title"><h2>ປື້ມຄັງເງິນສົດ</h2></div>
    <div class="table-wrap"><table id="cashbookTable">
+
    <thead style="text-align: center;">
     <tr>
       <th rowspan="3" style="vertical-align: middle;">ລ/ດ</th>

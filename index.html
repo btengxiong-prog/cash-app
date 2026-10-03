@@ -245,42 +245,57 @@ const TX_PER_PAGE = 50; // ກຳນົດໃຫ້ສະແດງໜ້າລ�
 // ຟັງຊັນບັນທຶກຂໍ້ມູນ (ບັນທຶກລົງເຄື່ອງພ້ອມ ແລະ ຂຶ້ນ Firebase ພ້ອມ)
 function saveDB() {
   localStorage.setItem(KEY, JSON.stringify(db));
-  database.ref('treasury_data').set(db).catch(err => console.error("Firebase save error:", err));
+  database.ref('treasury_data').set(db)
+    .then(() => {
+        console.log("💾 ບັນທຶກລົງ Firebase ສຳເລັດ");
+    })
+    .catch(err => {
+        console.error("Firebase save error:", err);
+        alert("❌ ການບັນທຶກອອນລາຍລົ້ມເຫຼວ (ກວດສອບ Rules ໃນ Firebase): " + err.message);
+    });
 }
 
 // ດຶງຂໍ້ມູນແບບ Realtime ຈາກ Firebase
 database.ref('treasury_data').on('value', (snapshot) => {
   const data = snapshot.val();
+  
   if (data) {
     db = data;
     
-    // ປ້ອງກັນ Firebase ລຶບ Array ທີ່ຫວ່າງເປົ່າ 
+    // ປ້ອງກັນ Firebase ລຶບ Array ທີ່ຫວ່າງເປົ່າ
     if (!db.transactions) db.transactions = [];
     if (!db.funds) db.funds = defaultFunds;
     if (!db.accounts) db.accounts = defaultAccounts;
     if (!db.audit) db.audit = [];
     
-    // ອັບເດດ LocalStorage ໃຫ້ກົງກັບ Cloud
+    // ອັບເດດ LocalStorage
     localStorage.setItem(KEY, JSON.stringify(db));
-  }
-  
-  // [ປັບປຸງ Realtime UI] ເພື່ອບໍ່ໃຫ້ລົບກວນການພິມຄົ້ນຫາ ຫຼື ກອງຂໍ້ມູນຂອງຜູ້ໃຊ້
-  if (currentPage === 'transactions' && document.getElementById('txList')) {
-    filterTx(false); // ອັບເດດສະເພາະຕາຕະລາງລາຍການ ໂດຍຮັກສາຂໍ້ຄວາມທີ່ຄົ້ນຫາໄວ້ຄືເກົ່າ
-  } else if (currentPage === 'cashbook' && document.getElementById('cashbookContainer')) {
-    generateCashbook(); // ອັບເດດສະເພາະຕາຕະລາງປື້ມຄັງເງິນ
-  } else if (currentPage === 'reports' && document.getElementById('reportContainer')) {
-    generateReport(); // ອັບເດດສະເພາະຕາຕະລາງລາຍງານ
+    
+    // ອັບເດດໜ້າຈໍແບບບໍ່ກະພິບ
+    if (currentPage === 'transactions' && document.getElementById('txList')) {
+      filterTx(false);
+    } else if (currentPage === 'cashbook' && document.getElementById('cashbookContainer')) {
+      generateCashbook();
+    } else if (currentPage === 'reports' && document.getElementById('reportContainer')) {
+      generateReport();
+    } else if (currentPage === 'dashboard') {
+      renderDashboard(); // ແຕ້ມສະເພາະເນື້ອໃນໜ້າຫຼັກໃໝ່
+    } else {
+      showPage(currentPage);
+    }
+    
   } else {
-    showPage(currentPage); // ໜ້າອື່ນໆໃຫ້ໂຫຼດໃໝ່ປົກກະຕິເພາະບໍ່ມີຊ່ອງພິມຂໍ້ມູນ
+    // 🌟 ສຳຄັນ: ຖ້າຖານຂໍ້ມູນ Firebase ຍັງຫວ່າງເປົ່າ ໃຫ້ດັນຂໍ້ມູນຈາກເຄື່ອງນີ້ຂຶ້ນໄປບັນທຶກກ່ອນ!
+    saveDB();
   }
   
   if (isFirstLoad) {
-    console.log("ເຊື່ອມຕໍ່ Realtime Database ສຳເລັດ!");
+    console.log("✅ ເຊື່ອມຕໍ່ Realtime Database ສຳເລັດ!");
     isFirstLoad = false;
   }
 }, (error) => {
-   console.warn("ບໍ່ສາມາດດຶງຂໍ້ມູນຈາກ Firebase ໄດ້, ລະບົບຈະໃຊ້ຂໍ້ມູນໃນເຄື່ອງແທນ:", error);
+    console.error("❌ ຂໍ້ຜິດພາດ Firebase:", error);
+    alert("❌ ເກີດຂໍ້ຜິດພາດໃນການເຊື່ອມຕໍ່ Firebase: " + error.message);
 });
 
 function money(n){return Number(n||0).toLocaleString('en-US')}

@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ລະບົບຄັງເງິນສົດ</title>
+<style>
+:root{
+  --primary:#0f766e;--primary2:#115e59;--bg:#f4f7f8;--card:#fff;
+  --text:#172033;--muted:#64748b;--border:#d9e1e7;--danger:#b91c1c;
+  --success:#15803d;--warning:#b45309;--shadow:0 4px 18px rgba(15,23,42,.07)
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Noto Sans Lao","Phetsarath OT","Segoe UI",sans-serif}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.app{display:flex;min-height:100vh}
+.sidebar{width:245px;background:#0f172a;color:#fff;position:fixed;inset:0 auto 0 0;padding:18px 14px;overflow:auto}
+.brand{font-weight:800;font-size:19px;padding:8px 10px 20px;line-height:1.35}
+.brand small{display:block;color:#94a3b8;font-size:11px;font-weight:500;margin-top:4px}
+.nav{display:grid;gap:5px}
+.nav button{border:0;background:transparent;color:#cbd5e1;text-align:left;padding:11px 12px;border-radius:9px}
+.nav button:hover,.nav button.active{background:#134e4a;color:#fff}
+.main{margin-left:245px;width:calc(100% - 245px);padding:18px 22px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:18px}
+.topbar h1{margin:0;font-size:22px}
+.topbar .date{color:var(--muted);font-size:13px}
+.btn{border:0;border-radius:8px;padding:9px 14px;font-weight:700}
+.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary2)}
+.btn-light{background:#fff;border:1px solid var(--border);color:var(--text)}
+.btn-danger{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
+.btn-success{background:#dcfce7;color:#166534;border:1px solid #bbf7d0}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.grid{display:grid;gap:14px}
+.cards{grid-template-columns:repeat(4,minmax(0,1fr))}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:var(--shadow)}
+.card .label{font-size:13px;color:var(--muted)}.card .value{font-size:25px;font-weight:800;margin-top:6px}
+.card.receipt .value{color:var(--success)}.card.payment .value{color:var(--danger)}.card.balance .value{color:var(--primary)}
+.panel{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);margin-top:16px;overflow:hidden}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border)}
+.panel-head h2{font-size:16px;margin:0}
+.panel-body{padding:16px}
+.table-wrap{overflow:auto}
+table{border-collapse:collapse;width:100%;min-width:980px}
+th,td{border:1px solid var(--border);padding:8px 9px;font-size:13px}
+th{background:#f1f5f9;font-weight:800;white-space:nowrap}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+td.center{text-align:center}
+.badge{display:inline-block;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:800}
+.badge.receipt{background:#dcfce7;color:#166534}.badge.payment{background:#fee2e2;color:#991b1b}
+.badge.active{background:#ccfbf1;color:#115e59}
+.form-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.field label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;background:#fff}
+.field textarea{min-height:80px;resize:vertical}
+.full{grid-column:1/-1}
+.modal{position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;align-items:center;justify-content:center;padding:20px;z-index:20}
+.modal.open{display:flex}
+.modal-box{width:min(760px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:15px 18px;border-bottom:1px solid var(--border)}
+.modal-head h3{margin:0;font-size:17px}.modal-body{padding:18px}.modal-foot{padding:14px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+.kpi{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px dashed var(--border)}.kpi:last-child{border-bottom:0}
+.empty{text-align:center;color:var(--muted);padding:30px}
+.searchbar{display:flex;gap:8px;flex-wrap:wrap}.searchbar input,.searchbar select{padding:9px;border:1px solid var(--border);border-radius:8px}
+.report-title{text-align:center;margin:4px 0 14px}.report-title h2{margin:0;font-size:18px}.report-title p{margin:4px 0;color:var(--muted);font-size:12px}
+.right{text-align:right}.muted{color:var(--muted)}.danger{color:var(--danger)}.success{color:var(--success)}
+hr.sep{border:0;border-top:1px solid var(--border);margin:16px 0}
+@media(max-width:1000px){.cards{grid-template-columns:repeat(2,1fr)}.form-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){.sidebar{position:static;width:100%;height:auto}.app{display:block}.main{margin:0;width:100%;padding:12px}.nav{grid-template-columns:repeat(2,1fr)}.cards,.form-grid{grid-template-columns:1fr}.topbar{align-items:flex-start;flex-direction:column}}
+@media print{
+  .sidebar,.topbar,.no-print,.panel-head .actions,.modal{display:none!important}
+  .main{margin:0;width:100%;padding:0}.panel{box-shadow:none;border:0}.panel-body{padding:0}
+  body{background:#fff}table{min-width:0;font-size:10px}th,td{padding:5px}
+  @page{size:A4 landscape;margin:8mm}
+}
+
+/* ------------------- CUSTOM POPUP UI ------------------- */
+.toast-container { position: fixed; top: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 12px; pointer-events: none; }
+.toast { background: #fff; border-left: 5px solid var(--primary); padding: 16px 24px; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 14px; color: var(--text); animation: slideInRight 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; pointer-events: auto; }
+.toast.hide { animation: slideOutRight 0.3s ease forwards; }
+.toast-icon { display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; background: #ccfbf1; color: var(--primary); border-radius: 50%; font-size: 14px; font-weight: 900; }
+.toast.error { border-left-color: var(--danger); }
+.toast.error .toast-icon { background: #fee2e2; color: var(--danger); }
+
+.confirm-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.4); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 10000; opacity: 0; transition: opacity 0.2s ease; }
+.confirm-overlay.open { display: flex; opacity: 1; }
+.confirm-box { background: #fff; padding: 32px 24px; border-radius: 16px; width: min(380px, 90%); text-align: center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); transform: translateY(20px) scale(0.95); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.confirm-overlay.open .confirm-box { transform: translateY(0) scale(1); }
+.confirm-icon { width: 64px; height: 64px; background: #fee2e2; color: #dc2626; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 20px; }
+.confirm-text { font-size: 17px; margin-bottom: 28px; color: var(--text); font-weight: 600; line-height: 1.4; white-space: pre-line; }
+.confirm-actions { display: flex; gap: 12px; justify-content: center; }
+.confirm-actions .btn { flex: 1; padding: 12px; font-size: 14px; }
+
+@keyframes slideInRight { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes slideOutRight { from { transform: translateX(0); opacity: 1; } to { transform: translateX(120%); opacity: 0; } }
+/* ------------------------------------------------------- */
+
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <div class="brand">ຄັງເງິນສົດ<small>Cash Treasury Management</small></div>
+  <div class="nav">
+    <button data-page="dashboard" class="active">🏠 ໜ້າຫຼັກ</button>
+    <button data-page="cashbook">📒 ປື້ມຄັງເງິນສົດ</button>
+    <button data-page="transactions">🧾 ບັນທຶກຮັບ–ຈ່າຍ</button>
+    <button data-page="accounts">📚 ໂຄງບັນຊີ</button>
+    <button data-page="reports">📊 ລາຍງານ</button>
+    <button data-page="settings">⚙️ ຕັ້ງຄ່າ</button>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div><h1 id="pageTitle">ໜ້າຫຼັກ</h1><div class="date" id="today"></div></div>
+    <div class="actions no-print">
+      <button class="btn btn-light" onclick="backupData()">💾 Backup</button>
+    </div>
+  </div>
+  <div id="content"></div>
+</main>
+</div>
+
+<div class="modal" id="txModal">
+ <div class="modal-box">
+  <div class="modal-head"><h3 id="txModalTitle">ບັນທຶກຮັບ–ຈ່າຍ</h3><button class="btn btn-light" onclick="closeModal()">✕</button></div>
+  <form id="txForm">
+   <div class="modal-body">
+    <input type="hidden" id="txId">
+    <div class="form-grid">
+      <div class="field"><label>ປະເພດລາຍການ *</label><select id="txType"><option value="receipt">ຮັບເງິນ</option><option value="payment">ຈ່າຍເງິນ</option></select></div>
+      <div class="field"><label>ວັນທີ *</label><input id="txDate" type="date" required></div>
+      <div class="field"><label>ເລກທີເອກະສານ</label><input id="txRef" placeholder="ຕົວຢ່າງ: ຮຈ-001/2026"></div>
+      <div class="field"><label>ໝວດເງິນ *</label><select id="txFund" required></select></div>
+      <div class="field full"><label>ເນື້ອໃນລາຍການ *</label><input id="txDesc" required placeholder="ລາຍລະອຽດການຮັບ ຫຼື ຈ່າຍ"></div>
+      <div class="field"><label>ບັນຊີ/ລະຫັດ</label><select id="txAccount"></select></div>
+      <div class="field"><label>ຈຳນວນເງິນ (ກີບ) *</label><input id="txAmount" type="number" min="0" step="1" required></div>
+      <div class="field full"><label>ໝາຍເຫດ</label><textarea id="txNote" placeholder="ຫຼັກຖານ, ຜູ້ຮັບ/ຜູ້ຈ່າຍ, ໝາຍເຫດອື່ນໆ"></textarea></div>
+    </div>
+   </div>
+   <div class="modal-foot"><button type="button" class="btn btn-light" onclick="closeModal()">ຍົກເລີກ</button><button class="btn btn-primary">💾 ບັນທຶກ</button></div>
+  </form>
+ </div>
+</div>
+
+<div class="modal" id="accountModal">
+ <div class="modal-box">
+  <div class="modal-head"><h3>ເພີ່ມ/ແກ້ໄຂບັນຊີ</h3><button class="btn btn-light" onclick="closeAccountModal()">✕</button></div>
+  <form id="accountForm">
+   <div class="modal-body"><input type="hidden" id="accId"><div class="form-grid">
+    <div class="field"><label>ລະຫັດບັນຊີ *</label><input id="accCode" required placeholder="1101"></div>
+    <div class="field"><label>ຊື່ບັນຊີ *</label><input id="accName" required placeholder="ເງິນສົດ"></div>
+    <div class="field"><label>ປະເພດ *</label><select id="accType"><option value="asset">ຊັບສິນ</option><option value="income">ລາຍຮັບ</option><option value="expense">ລາຍຈ່າຍ</option></select></div>
+    <div class="field"><label>ໝວດເງິນ</label><select id="accFund"></select></div>
+    <div class="field full"><label>ລາຍລະອຽດ</label><input id="accNote"></div>
+   </div></div>
+   <div class="modal-foot"><button type="button" class="btn btn-light" onclick="closeAccountModal()">ຍົກເລີກ</button><button class="btn btn-primary">💾 ບັນທຶກ</button></div>
+  </form>
+ </div>
+</div>
+
+<div class="modal" id="importModal">
+ <div class="modal-box">
+  <div class="modal-head"><h3>📋 ນຳເຂົ້າຂໍ້ມູນ (ກ໋ອບປີ້ຈາກ Excel ມາວາງ)</h3><button class="btn btn-light" onclick="closeImportModal()">✕</button></div>
+  <div class="modal-body">
+   <p class="muted" style="margin-top:0;font-size:13px;margin-bottom:10px;">ກະລຸນາທາສີຂໍ້ມູນໃນ Excel (ລວມທັງແຖວຫົວຂໍ້ ຫຼື ບໍ່ລວມກໍໄດ້) ແລ້ວກ໋ອບປີ້ (Ctrl+C) ມາວາງລົງໃນຊ່ອງລຸ່ມນີ້ (Ctrl+V):</p>
+   <textarea id="pasteArea" style="width:100%;height:200px;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:inherit" placeholder="ວາງຂໍ້ມູນຢູ່ທີ່ນີ້..."></textarea>
+  </div>
+  <div class="modal-foot">
+   <button type="button" class="btn btn-light" onclick="closeImportModal()">ຍົກເລີກ</button>
+   <button class="btn btn-primary" onclick="processPasteData()">💾 ນຳເຂົ້າຂໍ້ມູນ</button>
+  </div>
+ </div>
+</div>
+
+<script>
+const KEY='cash_treasury_v1';
+
+const defaultFunds=[
+ {id:'budget',name:'ງົບປະມານ'},
+ {id:'academic',name:'ວິຊາການ'},
+ {id:'support',name:'ຊ່ວຍເຫຼືອ'},
+ {id:'fee',name:'ຄ່າທຳນຽມ'}
+];
+
+const defaultAccounts=[
+ {id:'a110',code:'110',name:'ເງິນສົດ',type:'asset',fund:'',note:'ເງິນສົດໃນຄັງ'},
+ {id:'a120',code:'120',name:'ເງິນຝາກທະນາຄານ',type:'asset',fund:'',note:''},
+ {id:'i410',code:'410',name:'ລາຍຮັບຈາກງົບປະມານ',type:'income',fund:'budget',note:''},
+ {id:'i420',code:'420',name:'ລາຍຮັບວິຊາການ',type:'income',fund:'academic',note:''},
+ {id:'i430',code:'430',name:'ເງິນຊ່ວຍເຫຼືອ',type:'income',fund:'support',note:''},
+ {id:'i440',code:'440',name:'ລາຍຮັບຄ່າທຳນຽມ',type:'income',fund:'fee',note:''},
+ {id:'e510',code:'510',name:'ລາຍຈ່າຍງົບປະມານ',type:'expense',fund:'budget',note:''},
+ {id:'e520',code:'520',name:'ລາຍຈ່າຍວິຊາການ',type:'expense',fund:'academic',note:''},
+ {id:'e530',code:'530',name:'ລາຍຈ່າຍຊ່ວຍເຫຼືອ',type:'expense',fund:'support',note:''},
+ {id:'e540',code:'540',name:'ລາຍຈ່າຍຄ່າທຳນຽມ',type:'expense',fund:'fee',note:''}
+];
+
+let db=loadDB();
+let currentPage='dashboard';
+
+function loadDB(){
+ const raw=localStorage.getItem(KEY);
+ if(raw){try{return JSON.parse(raw)}catch(e){}}
+ return {settings:{orgName:'ຫ້ອງການ/ໜ່ວຍງານ',currency:'ກີບ',opening:{budget:0,academic:0,support:0,fee:0}},funds:defaultFunds,accounts:defaultAccounts,transactions:[],audit:[]};
+}
+function saveDB(){localStorage.setItem(KEY,JSON.stringify(db))}
+function money(n){return Number(n||0).toLocaleString('en-US')}
+function updateOpeningText(text) {
+  db.settings.openingText = text.trim() || 'ຍອດຍົກມາ';
+  saveDB();
+}
+function num(n){
+  if(typeof n === 'string') return Number(n.replace(/,/g, '')) || 0;
+  return Number(n||0);
+}
+function today(){return new Date().toISOString().slice(0,10)}
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function fundName(id){return db.funds.find(x=>x.id===id)?.name||'—'}
+function accountName(id){return db.accounts.find(x=>x.id===id)?.name||'—'}
+function fmtDate(s){if(!s)return ''; const [y,m,d]=s.split('-'); return `${d}/${m}/${y}`}
+function log(action,detail){db.audit.unshift({id:Date.now(),date:new Date().toISOString(),action,detail});db.audit=db.audit.slice(0,500);saveDB()}
+
+document.getElementById('today').textContent=new Date().toLocaleDateString('lo-LA',{year:'numeric',month:'long',day:'numeric'});
+
+document.querySelectorAll('.nav button').forEach(b=>b.addEventListener('click',()=>showPage(b.dataset.page)));
+
+function showPage(page){
+ currentPage=page;
+ document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
+ const titles={dashboard:'ໜ້າຫຼັກ',cashbook:'ປື້ມຄັງເງິນສົດ',transactions:'ບັນທຶກຮັບ–ຈ່າຍ',accounts:'ໂຄງບັນຊີ',reports:'ລາຍງານ',settings:'ຕັ້ງຄ່າ'};
+ document.getElementById('pageTitle').textContent=titles[page];
+ ({dashboard:renderDashboard,cashbook:renderCashbook,transactions:renderTransactions,accounts:renderAccounts,reports:renderReports,settings:renderSettings}[page])();
+}
+
+function totals(){
+ let out={receipt:0,payment:0,balance:0};
+ db.transactions.forEach(t=>out[t.type]+=num(t.amount));
+ out.balance=out.receipt-out.payment;
+ return out;
+}
+function fundTotals(){
+ const out={}; db.funds.forEach(f=>out[f.id]={receipt:0,payment:0,balance:num(db.settings.opening[f.id])});
+ db.transactions.forEach(t=>{if(!out[t.fund])out[t.fund]={receipt:0,payment:0,balance:0}; out[t.fund][t.type]+=num(t.amount);out[t.fund].balance+=t.type==='receipt'?num(t.amount):-num(t.amount)});
+ return out;
+}
+
+function renderDashboard(){
+ const t=totals(), ft=fundTotals();
+ document.getElementById('content').innerHTML=`
+ <div class="grid cards">
+  <div class="card receipt"><div class="label">ຮັບເງິນທັງໝົດ</div><div class="value">${money(t.receipt)}</div></div>
+  <div class="card payment"><div class="label">ຈ່າຍເງິນທັງໝົດ</div><div class="value">${money(t.payment)}</div></div>
+  <div class="card balance"><div class="label">ຍອດເຫຼືອສຸດທ້າຍ</div><div class="value">${money(t.balance)}</div></div>
+  <div class="card"><div class="label">ຈຳນວນລາຍການ</div><div class="value">${db.transactions.length.toLocaleString()}</div></div>
+ </div>
+ <div class="panel"><div class="panel-head"><h2>ຍອດແຍກຕາມໝວດເງິນ</h2><div class="actions no-print"><button class="btn btn-light" onclick="showPage('reports')">ເບິ່ງລາຍງານ</button></div></div>
+ <div class="panel-body"><div class="table-wrap"><table><thead><tr><th>ໝວດ</th><th>ຍອດຍົກມາ</th><th>ຮັບ</th><th>ຈ່າຍ</th><th>ຍັງເຫຼືອ</th></tr></thead><tbody>
+ ${db.funds.map(f=>`<tr><td><b>${esc(f.name)}</b></td><td class="num">${money(db.settings.opening[f.id])}</td><td class="num success">${money(ft[f.id].receipt)}</td><td class="num danger">${money(ft[f.id].payment)}</td><td class="num"><b>${money(ft[f.id].balance)}</b></td></tr>`).join('')}
+ </tbody></table></div></div></div>
+ <div class="panel"><div class="panel-head"><h2>ລາຍການລ່າສຸດ</h2><button class="btn btn-light no-print" onclick="showPage('transactions')">ທັງໝົດ</button></div>
+ <div class="panel-body">${txTable(db.transactions.slice().sort((a,b)=>b.date.localeCompare(a.date)||b.created-b.created).slice(0,8))}</div></div>`;
+}
+
+function txTable(list){
+ if(!list.length)return '<div class="empty">ຍັງບໍ່ມີລາຍການ</div>';
+ return `<div class="table-wrap"><table><thead><tr><th>ລ/ດ</th><th>ວັນທີ</th><th>ເລກທີ</th><th>ເນື້ອໃນ</th><th>ໝວດ</th><th>ປະເພດ</th><th>ຈຳນວນ</th><th class="no-print">ຈັດການ</th></tr></thead><tbody>
+ ${list.map((t,i)=>`<tr><td class="center">${i+1}</td><td>${fmtDate(t.date)}</td><td>${esc(t.ref||'')}</td><td>${esc(t.desc)}</td><td>${esc(fundName(t.fund))}</td><td><span class="badge ${t.type}">${t.type==='receipt'?'ຮັບ':'ຈ່າຍ'}</span></td><td class="num">${money(t.amount)}</td><td class="no-print"><button class="btn btn-light" onclick="editTx('${t.id}')">ແກ້</button> <button class="btn btn-danger" onclick="deleteTx('${t.id}')">ລົບ</button></td></tr>`).join('')}
+ </tbody></table></div>`;
+}
+
+function renderTransactions(){
+ document.getElementById('content').innerHTML=`
+ <div class="panel"><div class="panel-head"><h2>ບັນທຶກລາຍການ</h2><button class="btn btn-primary no-print" onclick="openTransactionModal()">＋ ເພີ່ມລາຍການ</button></div>
+ <div class="panel-body"><div class="searchbar no-print">
+ <input id="txSearch" placeholder="ຄົ້ນຫາເນື້ອໃນ/ເລກທີ" oninput="filterTx()">
+ <select id="txFilterType" onchange="filterTx()"><option value="">ທັງໝົດ</option><option value="receipt">ຮັບ</option><option value="payment">ຈ່າຍ</option></select>
+ <select id="txFilterFund" onchange="filterTx()"><option value="">ທຸກໝວດ</option>${db.funds.map(f=>`<option value="${f.id}">${esc(f.name)}</option>`).join('')}</select>
+ <button class="btn btn-light" onclick="exportCSV()">⬇ ໂຫຼດອອກ Excel</button>
+ <button class="btn btn-success" onclick="openImportModal()">📋 ວາງຂໍ້ມູນຈາກ Excel</button>
+ </div><div id="txList" style="margin-top:12px">${txTable(db.transactions.slice().sort((a,b)=>b.date.localeCompare(a.date)||b.created-a.created))}</div></div></div>`;
+}
+
+// ວາງຟັງຊັນ importCSV ນີ້ໄວ້ລຸ່ມຟັງຊັນ renderTransactions() ຫຼື ລຸ່ມ filterTx() ກໍໄດ້
+function importCSV(ev){
+ const f = ev.target.files[0];
+ if(!f) return;
+ const r = new FileReader();
+ r.onload = (e) => {
+  const text = e.target.result;
+  const rows = text.split('\n');
+  let imported = 0;
+  
+  // ຂ້າມແຖວທຳອິດ (ແຖວຫົວຂໍ້)
+  for(let i = 1; i < rows.length; i++){
+   let row = rows[i].trim();
+   if(!row) continue;
+   
+   let cols = [];
+   let inQuotes = false;
+   let val = '';
+   for(let char of row){
+    if(char === '"') inQuotes = !inQuotes;
+    else if(char === ',' && !inQuotes){ cols.push(val.trim().replace(/^"|"$/g, '')); val = ''; }
+    else val += char;
+   }
+   cols.push(val.trim().replace(/^"|"$/g, ''));
+   
+   // ກວດສອບຄວາມຖືກຕ້ອງຂອງຄໍລຳ: ວັນທີ(1), ເລກທີ(2), ເນື້ອໃນ(3), ໝວດ(4), ປະເພດ(5), ຈຳນວນ(6), ບັນຊີ(7), ໝາຍເຫດ(8)
+   if(cols.length >= 7 && cols[3] && cols[6]){
+    let date = cols[1];
+    let ref = cols[2];
+    let desc = cols[3];
+    let fundName = cols[4];
+    let typeName = cols[5];
+    let amount = num(cols[6].replace(/,/g, ''));
+    let accountName = cols[7] || '';
+    let note = cols[8] || '';
+
+    if(desc && amount > 0){
+     let fundObj = db.funds.find(x => x.name === fundName);
+     let accObj = db.accounts.find(x => x.name === accountName);
+     
+     db.transactions.push({
+      id: crypto.randomUUID(),
+      date: date || today(),
+      ref: ref,
+      desc: desc,
+      fund: fundObj ? fundObj.id : db.funds[0].id,
+      type: typeName === 'ຮັບ' ? 'receipt' : 'payment',
+      amount: amount,
+      account: accObj ? accObj.id : '',
+      note: note,
+      created: Date.now() + i
+     });
+     imported++;
+    }
+   }
+  }
+  
+  if(imported > 0){ 
+   saveDB(); 
+   alert(`ນຳເຂົ້າສຳເລັດ ${imported} ລາຍການ`); 
+   showPage('transactions'); 
+  } else { 
+   alert('ບໍ່ພົບຂໍ້ມູນທີ່ຈະນຳເຂົ້າ ຫຼື ໄຟລ໌ບໍ່ຖືກຮູບແບບ ໃສ່ຂໍ້ມູນຕາມຟອມທີ່ໂຫຼດອອກໄປເທົ່ານັ້ນ'); 
+  }
+  ev.target.value = ''; // ເຄຍຄ່າ input ເພື່ອໃຫ້ສາມາດອັບໂຫຼດໄຟລ໌ເດີມຊ້ຳໄດ້
+ };
+ r.readAsText(f);
+}
+function filterTx(){
+ const q=(document.getElementById('txSearch').value||'').toLowerCase(),ty=document.getElementById('txFilterType').value,fu=document.getElementById('txFilterFund').value;
+ let list=db.transactions.filter(t=>(!q||`${t.desc} ${t.ref} ${t.note}`.toLowerCase().includes(q))&&(!ty||t.type===ty)&&(!fu||t.fund===fu)).sort((a,b)=>b.date.localeCompare(a.date)||b.created-a.created);
+ document.getElementById('txList').innerHTML=txTable(list);
+}
+
+function renderCashbook(){
+ document.getElementById('content').innerHTML=`
+ <div class="panel">
+  <div class="panel-head">
+   <h2>ປື້ມຄັງເງິນສົດ — ຮູບແບບຕາມເອກະສານ</h2>
+   <div class="actions no-print"><button class="btn btn-primary" onclick="window.print()">🖨 ພິມ</button></div>
+  </div>
+  <div class="panel-body">
+   <div class="report-title"><h2>${esc(db.settings.orgName)}</h2><p>ປື້ມຄັງເງິນສົດ</p></div>
+   <div class="table-wrap"><table id="cashbookTable">
+   <thead style="text-align: center;">
+    <tr>
+      <th rowspan="3" style="vertical-align: middle;">ລ/ດ</th>
+      <th colspan="2">ເອກະສານຢັ້ງຢືນ</th>
+      <th rowspan="3" style="vertical-align: middle;">ເນື້ອໃນລາຍການ</th>
+      <th colspan="15">ລາຍການເຄື່ອນໄຫວ(ເງິນສົດ)</th>
+    </tr>
+    <tr>
+      <th rowspan="2" style="vertical-align: middle;">ວ.ດ.ປ</th>
+      <th rowspan="2" style="vertical-align: middle;">ເລກທີ</th>
+      <th colspan="5">ຮັບເງິນສົດ</th>
+      <th colspan="5">ຈ່າຍເງິນສົດ</th>
+      <th colspan="5">ຍັງເຫຼືອ</th>
+    </tr>
+    <tr>${fundHeaders()}${fundHeaders()}${fundHeaders()}</tr>
+   </thead>
+   <tbody>${cashbookRows()}</tbody>
+   </table></div>
+  </div>
+ </div>`;
+}
+
+function fundHeaders(){return db.funds.map(f=>`<th>${esc(f.name)}</th>`).join('')+'<th>ລວມ</th>'}
+
+function cashbookRows(){
+ let bal={};db.funds.forEach(f=>bal[f.id]=num(db.settings.opening[f.id]));
+ const openingTotal=Object.values(bal).reduce((a,b)=>a+b,0);
+ 
+ // ດຶງຂໍ້ຄວາມຍອດຍົກມາຈາກ settings
+ const openingText = db.settings.openingText || 'ຍອດຍົກມາ';
+ 
+ // ຖ້າຄ່າເປັນ 0 ຈະສະແດງເປັນຫວ່າງເປົ່າ ໂດຍໃຊ້ເງື່ອນໄຂ (ຄ່າ ? money(ຄ່າ) : '')
+ let rows=`<tr style="background:#e5e7eb;font-weight:700">
+  <td colspan="4" contenteditable="true" onblur="updateOpeningText(this.innerText)" style="cursor: text; outline: none; border: 1px dashed #94a3b8;" title="ຄລິກເພື່ອພິມແກ້ໄຂຂໍ້ຄວາມ">${esc(openingText)}</td>
+  ${db.funds.map(()=>'<td></td>').join('')}<td></td>
+  ${db.funds.map(()=>'<td></td>').join('')}<td></td>
+  ${db.funds.map(f=>`<td class="num">${bal[f.id] ? money(bal[f.id]) : ''}</td>`).join('')}
+  <td class="num">${openingTotal ? money(openingTotal) : ''}</td>
+ </tr>`;
+ 
+ const list=db.transactions.slice().sort((a,b)=>a.date.localeCompare(b.date)||a.created-b.created);
+ list.forEach((t,i)=>{
+   let recTotal=t.type==='receipt'?num(t.amount):0,payTotal=t.type==='payment'?num(t.amount):0;
+   if(t.type==='receipt')bal[t.fund]+=num(t.amount);else bal[t.fund]-=num(t.amount);
+   let currentTotal = Object.values(bal).reduce((a,b)=>a+b,0);
+   
+   rows+=`<tr>
+    <td class="center">${i+1}</td>
+    <td>${fmtDate(t.date)}</td>
+    <td>${esc(t.ref||'')}</td>
+    <td>${esc(t.desc)}</td>
+    ${db.funds.map(f=>`<td class="num">${t.type==='receipt'&&t.fund===f.id?money(t.amount):''}</td>`).join('')}<td class="num">${recTotal?money(recTotal):''}</td>
+    ${db.funds.map(f=>`<td class="num">${t.type==='payment'&&t.fund===f.id?money(t.amount):''}</td>`).join('')}<td class="num">${payTotal?money(payTotal):''}</td>
+    ${db.funds.map(f=>`<td class="num">${bal[f.id] ? money(bal[f.id]) : ''}</td>`).join('')}
+    <td class="num"><b>${currentTotal ? money(currentTotal) : ''}</b></td>
+   </tr>`;
+ });
+ return rows;
+}
+
+function renderAccounts(){
+ document.getElementById('content').innerHTML=`
+ <div class="panel"><div class="panel-head"><h2>ໂຄງບັນຊີ (Chart of Accounts)</h2><button class="btn btn-primary no-print" onclick="openAccountModal()">＋ ເພີ່ມບັນຊີ</button></div>
+ <div class="panel-body"><div class="muted" style="margin-bottom:12px">ໂຄງນີ້ສາມາດປັບລະຫັດ ແລະ ເພີ່ມບັນຊີຕາມລະບຽບຂອງໜ່ວຍງານ.</div>
+ <div class="table-wrap"><table><thead><tr><th>ລະຫັດ</th><th>ຊື່ບັນຊີ</th><th>ປະເພດ</th><th>ໝວດເງິນ</th><th>ລາຍລະອຽດ</th><th class="no-print">ຈັດການ</th></tr></thead><tbody>
+ ${db.accounts.map(a=>`<tr><td><b>${esc(a.code)}</b></td><td>${esc(a.name)}</td><td>${a.type==='asset'?'ຊັບສິນ':a.type==='income'?'ລາຍຮັບ':'ລາຍຈ່າຍ'}</td><td>${esc(fundName(a.fund))}</td><td>${esc(a.note||'')}</td><td class="no-print"><button class="btn btn-light" onclick="editAccount('${a.id}')">ແກ້</button> <button class="btn btn-danger" onclick="deleteAccount('${a.id}')">ລົບ</button></td></tr>`).join('')}
+ </tbody></table></div></div></div>`;
+}
+
+function renderReports(){
+  // ດຶງປີທັງໝົດທີ່ມີໃນຖານຂໍ້ມູນອອກມາເປັນຕົວເລືອກ
+  let years = [...new Set(db.transactions.map(t => t.date.substring(0,4)))].sort((a,b) => b - a);
+  if(years.length === 0) years = [new Date().getFullYear().toString()];
+  
+  document.getElementById('content').innerHTML = `
+  <div class="panel no-print" style="margin-bottom:16px;">
+    <div class="panel-head">
+      <h2>ຕົວເລືອກລາຍງານ</h2>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="window.print()">🖨 ພິມລາຍງານ</button>
+        <button class="btn btn-light" onclick="exportReportCSV()">⬇ CSV</button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="searchbar">
+        <select id="repYear" onchange="generateReport()">
+          ${years.map(y => `<option value="${y}">ປະຈຳປີ ${y}</option>`).join('')}
+        </select>
+        <select id="repPeriod" onchange="generateReport()">
+          <optgroup label="ປະຈຳເດືອນ">
+            <option value="1">ປະຈຳເດືອນ 1</option><option value="2">ປະຈຳເດືອນ 2</option><option value="3">ປະຈຳເດືອນ 3</option>
+            <option value="4">ປະຈຳເດືອນ 4</option><option value="5">ປະຈຳເດືອນ 5</option><option value="6">ປະຈຳເດືອນ 6</option>
+            <option value="7">ປະຈຳເດືອນ 7</option><option value="8">ປະຈຳເດືອນ 8</option><option value="9">ປະຈຳເດືອນ 9</option>
+            <option value="10">ປະຈຳເດືອນ 10</option><option value="11">ປະຈຳເດືອນ 11</option><option value="12">ປະຈຳເດືອນ 12</option>
+          </optgroup>
+          <optgroup label="ປະຈຳໄຕມາດ">
+            <option value="q1">ໄຕມາດ 1 (ເດືອນ 1-3)</option>
+            <option value="q2">ໄຕມາດ 2 (ເດືອນ 4-6)</option>
+            <option value="q3">ໄຕມາດ 3 (ເດືອນ 7-9)</option>
+            <option value="q4">ໄຕມາດ 4 (ເດືອນ 10-12)</option>
+          </optgroup>
+          <optgroup label="ສະຫຼຸບລວມ">
+            <option value="m3">ປະຈຳ 3 ເດືອນ (ເດືອນ 1-3)</option>
+            <option value="m6">ປະຈຳ 6 ເດືອນ (ເດືອນ 1-6)</option>
+            <option value="m9">ປະຈຳ 9 ເດືອນ (ເດືອນ 1-9)</option>
+            <option value="m12" selected>ປະຈຳ 12 ເດືອນ (ທັງໝົດປີ)</option>
+          </optgroup>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div id="reportContainer"></div>`;
+  
+  generateReport();
+}
+
+function generateReport() {
+  const year = document.getElementById('repYear').value;
+  const period = document.getElementById('repPeriod').value;
+  const sel = document.getElementById('repPeriod');
+  const periodName = sel.options[sel.selectedIndex].text;
+
+  // ກຳນົດເດືອນເລີ່ມຕົ້ນ ແລະ ສິ້ນສຸດ ຕາມເງື່ອນໄຂ
+  let sm = 1, em = 12;
+  if (!isNaN(period)) { sm = parseInt(period); em = parseInt(period); }
+  else if (period === 'q1' || period === 'm3') { sm = 1; em = 3; }
+  else if (period === 'q2') { sm = 4; em = 6; }
+  else if (period === 'q3') { sm = 7; em = 9; }
+  else if (period === 'q4') { sm = 10; em = 12; }
+  else if (period === 'm6') { sm = 1; em = 6; }
+  else if (period === 'm9') { sm = 1; em = 9; }
+  else if (period === 'm12') { sm = 1; em = 12; }
+
+  const startDate = `${year}-${String(sm).padStart(2, '0')}-01`;
+  const endDate = `${year}-${String(em).padStart(2, '0')}-31`;
+
+  // ກຽມໂຄງສ້າງເກັບຄ່າ
+  let reportData = db.funds.map(f => ({
+    id: f.id, name: f.name, opening: num(db.settings.opening[f.id]), receipt: 0, payment: 0, balance: 0
+  }));
+
+  // ຄິດໄລ່ຍອດຍົກມາ ແລະ ການເຄື່ອນໄຫວໃນໄລຍະ
+  db.transactions.forEach(t => {
+    let fData = reportData.find(x => x.id === t.fund);
+    if (!fData) return;
+
+    let amount = num(t.amount);
+    // ຖ້າເປັນລາຍການເກົ່າກ່ອນໄລຍະທີ່ເລືອກ ໃຫ້ໄປບວກເຂົ້າ "ຍອດຍົກມາ"
+    if (t.date < startDate) {
+       if (t.type === 'receipt') fData.opening += amount;
+       else fData.opening -= amount;
+    } 
+    // ຖ້າເປັນລາຍການໃນໄລຍະທີ່ເລືອກ ໃຫ້ບວກເຂົ້າ "ຮັບ" ຫຼື "ຈ່າຍ"
+    else if (t.date >= startDate && t.date <= endDate) {
+       if (t.type === 'receipt') fData.receipt += amount;
+       else fData.payment += amount;
+    }
+  });
+
+  // ຄິດໄລ່ຜົນລວມສຸດທ້າຍ
+  let tOpen = 0, tRec = 0, tPay = 0, tBal = 0;
+  reportData.forEach(f => {
+    f.balance = f.opening + f.receipt - f.payment;
+    tOpen += f.opening; tRec += f.receipt; tPay += f.payment; tBal += f.balance;
+  });
+
+  document.getElementById('reportContainer').innerHTML = `
+  <div class="panel">
+    <div class="panel-body">
+      <div class="report-title">
+        <h2>${esc(db.settings.orgName)}</h2>
+        <p>ລາຍງານຄັງເງິນສົດ <b>${periodName}</b> ສົກປີ <b>${year}</b></p>
+      </div>
+      <div class="table-wrap">
+        <table id="reportTableData">
+          <thead>
+            <tr><th style="width:50px">ລ/ດ</th><th>ໝວດເງິນ</th><th>ຍອດຍົກມາ</th><th>ຮັບ</th><th>ຈ່າຍ</th><th>ຍັງເຫຼືອ</th></tr>
+          </thead>
+          <tbody>
+            ${reportData.map((f, i) => `
+            <tr>
+              <td class="center">${i+1}</td>
+              <td>${esc(f.name)}</td>
+              <td class="num">${f.opening ? money(f.opening) : ''}</td>
+              <td class="num">${f.receipt ? money(f.receipt) : ''}</td>
+              <td class="num">${f.payment ? money(f.payment) : ''}</td>
+              <td class="num"><b>${f.balance ? money(f.balance) : ''}</b></td>
+            </tr>`).join('')}
+            <tr style="font-weight:800;background:#f8fafc">
+              <td colspan="2" class="center">ລວມທັງໝົດ</td>
+              <td class="num">${tOpen ? money(tOpen) : ''}</td>
+              <td class="num">${tRec ? money(tRec) : ''}</td>
+              <td class="num">${tPay ? money(tPay) : ''}</td>
+              <td class="num" style="color:var(--primary)">${tBal ? money(tBal) : ''}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+}
+
+function exportReportCSV() {
+  const year = document.getElementById('repYear').value;
+  const sel = document.getElementById('repPeriod');
+  const periodName = sel.options[sel.selectedIndex].text;
+  
+  const table = document.getElementById('reportTableData');
+  if(!table) return;
+  
+  let csv = '\ufeff' + `ລາຍງານຄັງເງິນສົດ ${periodName} ສົກປີ ${year}\n\n`;
+  for(let row of table.rows) {
+    let rData = [];
+    for(let cell of row.cells) {
+      rData.push(`"${cell.innerText.replace(/"/g, '""')}"`);
+    }
+    csv += rData.join(',') + '\n';
+  }
+  downloadBlob(csv, `ລາຍງານ_${periodName}_${year}.csv`, 'text/csv;charset=utf-8');
+}
+
+function renderSettings(){
+ document.getElementById('content').innerHTML=`
+ <div class="panel"><div class="panel-head"><h2>ຕັ້ງຄ່າລະບົບ</h2></div><div class="panel-body">
+ <div class="form-grid">
+  <div class="field full"><label>ຊື່ໜ່ວຍງານ</label><input id="setOrg" value="${esc(db.settings.orgName)}"></div>
+  <div class="field"><label>ໜ່ວຍເງິນ</label><input id="setCurrency" value="${esc(db.settings.currency)}"></div>
+ </div><hr class="sep"><h3>ຍອດຍົກມາ</h3>
+ <div class="form-grid">${db.funds.map(f=>`<div class="field"><label>${esc(f.name)}</label><input type="text" id="open_${f.id}" value="${money(db.settings.opening[f.id])}" oninput="this.value = this.value.replace(/[^0-9]/g, '').replace(/\\B(?=(\\d{3})+(?!\\d))/g, ',')"></div>`).join('')}</div>
+ <div class="actions no-print" style="margin-top:14px"><button class="btn btn-primary" onclick="saveSettings()">💾 ບັນທຶກຕັ້ງຄ່າ</button></div>
+ </div></div>
+ <div class="panel"><div class="panel-head"><h2>ສຳຮອງ/ກູ້ຄືນຂໍ້ມູນ</h2></div><div class="panel-body"><div class="actions no-print"><button class="btn btn-light" onclick="backupData()">⬇ ສຳຮອງ JSON</button><label class="btn btn-light">⬆ ກູ້ຄືນ JSON<input type="file" accept=".json" onchange="restoreData(event)" hidden></label><button class="btn btn-danger" onclick="resetData()">⚠ ລ້າງຂໍ້ມູນທົດລອງ</button></div></div></div>`;
+}
+
+function fillFunds(selectId,allowBlank=false){
+ const s=document.getElementById(selectId);if(!s)return;
+ s.innerHTML=(allowBlank?'<option value="">— ບໍ່ກຳນົດ —</option>':'')+db.funds.map(f=>`<option value="${f.id}">${esc(f.name)}</option>`).join('');
+}
+function fillAccounts(){
+ const s=document.getElementById('txAccount');if(!s)return;
+ s.innerHTML='<option value="">— ເລືອກບັນຊີ —</option>'+db.accounts.map(a=>`<option value="${a.id}">${esc(a.code)} — ${esc(a.name)}</option>`).join('');
+}
+function openTransactionModal(id=null){
+ fillFunds('txFund');fillAccounts();document.getElementById('txForm').reset();
+ document.getElementById('txId').value=id||'';document.getElementById('txDate').value=today();document.getElementById('txModalTitle').textContent=id?'ແກ້ໄຂລາຍການ':'ບັນທຶກຮັບ–ຈ່າຍ';
+ if(id){const t=db.transactions.find(x=>x.id===id);if(t){['type','date','ref','fund','desc','account','amount','note'].forEach(k=>document.getElementById('tx'+k[0].toUpperCase()+k.slice(1)).value=t[k]??'')}} 
+ document.getElementById('txModal').classList.add('open');
+}
+function closeModal(){document.getElementById('txModal').classList.remove('open')}
+document.getElementById('txForm').addEventListener('submit',e=>{
+ e.preventDefault();const id=document.getElementById('txId').value;
+ const t={id:id||crypto.randomUUID(),type:document.getElementById('txType').value,date:document.getElementById('txDate').value,ref:document.getElementById('txRef').value.trim(),fund:document.getElementById('txFund').value,desc:document.getElementById('txDesc').value.trim(),account:document.getElementById('txAccount').value,amount:num(document.getElementById('txAmount').value),note:document.getElementById('txNote').value.trim(),created:id?(db.transactions.find(x=>x.id===id)?.created||Date.now()):Date.now()};
+ if(!t.amount||!t.desc){alert('ກະລຸນາປ້ອນເນື້ອໃນ ແລະ ຈຳນວນເງິນ');return}
+ if(id){const i=db.transactions.findIndex(x=>x.id===id);db.transactions[i]=t;log('EDIT',t.desc)}else{db.transactions.push(t);log('ADD',t.desc)}
+ saveDB();closeModal();showPage(currentPage);
+});
+function editTx(id){openTransactionModal(id)}
+function deleteTx(id){
+  const t = db.transactions.find(x => x.id === id); 
+  if(!t) return;
+  myConfirm(`ທ່ານຕ້ອງການລຶບລາຍການ:\n"${t.desc}" ແທ້ບໍ່?`, () => {
+    db.transactions = db.transactions.filter(x => x.id !== id);
+    log('DELETE', t.desc);
+    saveDB(); 
+    showPage(currentPage);
+  });
+}
+
+function openAccountModal(id=null){
+ fillFunds('accFund',true);document.getElementById('accountForm').reset();document.getElementById('accId').value=id||'';
+ if(id){const a=db.accounts.find(x=>x.id===id);if(a){document.getElementById('accCode').value=a.code;document.getElementById('accName').value=a.name;document.getElementById('accType').value=a.type;document.getElementById('accFund').value=a.fund||'';document.getElementById('accNote').value=a.note||''}}
+ document.getElementById('accountModal').classList.add('open');
+}
+function closeAccountModal(){document.getElementById('accountModal').classList.remove('open')}
+document.getElementById('accountForm').addEventListener('submit',e=>{
+ e.preventDefault();const id=document.getElementById('accId').value;
+ const a={id:id||crypto.randomUUID(),code:document.getElementById('accCode').value.trim(),name:document.getElementById('accName').value.trim(),type:document.getElementById('accType').value,fund:document.getElementById('accFund').value,note:document.getElementById('accNote').value.trim()};
+ if(!a.code||!a.name){alert('ກະລຸນາປ້ອນລະຫັດ ແລະ ຊື່ບັນຊີ');return}
+ if(id){db.accounts[db.accounts.findIndex(x=>x.id===id)]=a}else db.accounts.push(a);
+ saveDB();closeAccountModal();showPage('accounts');
+});
+function editAccount(id){openAccountModal(id)}
+
+function deleteAccount(id){
+  if(db.transactions.some(t => t.account === id)){ 
+    alert('ບັນຊີນີ້ຖືກນຳໃຊ້ໃນລາຍການແລ້ວ ຈຶ່ງລົບບໍ່ໄດ້'); 
+    return; 
+  }
+  const a = db.accounts.find(x => x.id === id); 
+  if(!a) return;
+  myConfirm(`ທ່ານຕ້ອງການລົບບັນຊີ:\n"${a.name}" ແທ້ບໍ່?`, () => {
+    db.accounts = db.accounts.filter(x => x.id !== id);
+    saveDB(); 
+    showPage('accounts');
+  });
+}
+
+function saveSettings(){
+ db.settings.orgName=document.getElementById('setOrg').value.trim()||'ຫ້ອງການ/ໜ່ວຍງານ';
+ db.settings.currency=document.getElementById('setCurrency').value.trim()||'ກີບ';
+ db.funds.forEach(f=>db.settings.opening[f.id]=num(document.getElementById('open_'+f.id).value));
+ saveDB();alert('ບັນທຶກຕັ້ງຄ່າແລ້ວ');showPage('settings');
+}
+
+function exportCSV(){
+ const rows=[['ລ/ດ','ວັນທີ','ເລກທີ','ເນື້ອໃນ','ໝວດ','ປະເພດ','ຈຳນວນ','ບັນຊີ','ໝາຍເຫດ']];
+ db.transactions.slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach((t,i)=>rows.push([i+1,t.date,t.ref||'',t.desc,fundName(t.fund),t.type==='receipt'?'ຮັບ':'ຈ່າຍ',t.amount,accountName(t.account),t.note||'']));
+ const csv='\ufeff'+rows.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
+ downloadBlob(csv,'cashbook.csv','text/csv;charset=utf-8');
+}
+function backupData(){downloadBlob(JSON.stringify(db,null,2),'cash-treasury-backup.json','application/json')}
+function downloadBlob(content,name,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+function restoreData(ev){
+ const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!x.transactions||!x.accounts||!x.funds)throw Error();db=x;saveDB();alert('ກູ້ຄືນຂໍ້ມູນສຳເລັດ');showPage(currentPage)}catch(e){alert('ໄຟລ໌ JSON ບໍ່ຖືກຕ້ອງ')}};r.readAsText(f)}
+
+ function resetData(){
+  myConfirm('ຈະລຶບຂໍ້ມູນລາຍການທັງໝົດ ແລະກັບໄປຄ່າເລີ່ມຕົ້ນ.\nຂໍ້ມູນທີ່ລຶບແລ້ວບໍ່ສາມາດກູ້ຄືນໄດ້, ແນ່ໃຈບໍ?', () => {
+    localStorage.removeItem(KEY);
+    db = loadDB(); 
+    showPage('dashboard');
+  });
+}
+
+showPage('dashboard');
+
+function openImportModal(){
+ document.getElementById('pasteArea').value = '';
+ document.getElementById('importModal').classList.add('open');
+}
+function closeImportModal(){
+ document.getElementById('importModal').classList.remove('open');
+}
+
+function processPasteData(){
+ const text = document.getElementById('pasteArea').value.trim();
+ if(!text){ alert('ກະລຸນາວາງຂໍ້ມູນກ່ອນ'); return; }
+ 
+ function parseTSV(str) {
+  let rows = [];
+  let row = [];
+  let val = '';
+  let inQuotes = false;
+  for (let i = 0; i < str.length; i++) {
+   let c = str[i];
+   if (c === '"') {
+    if (inQuotes && str[i+1] === '"') { val += '"'; i++; } 
+    else { inQuotes = !inQuotes; }
+   } else if (c === '\t' && !inQuotes) {
+    row.push(val); val = '';
+   } else if (c === '\n' && !inQuotes) {
+    row.push(val); rows.push(row); row = []; val = '';
+   } else {
+    val += c;
+   }
+  }
+  row.push(val);
+  if (row.length > 1 || row[0] !== '') rows.push(row);
+  return rows;
+ }
+
+ const parsedRows = parseTSV(text);
+ let imported = 0;
+ let skipped = 0; // ຕົວແປສຳລັບນັບຈຳນວນທີ່ຊ້ຳກັນແລ້ວຖືກຂ້າມ
+ 
+ const fundIds = ['budget', 'academic', 'support', 'fee'];
+
+ for(let i = 0; i < parsedRows.length; i++){
+  let cols = parsedRows[i].map(c => c.trim().replace(/^"|"$/g, ''));
+  
+  if(cols.length < 5) continue;
+  if(cols[0] === 'ວ.ດ.ປ' || cols[2] === 'ເນື້ອໃນລາຍການ') continue;
+  
+  let dateStr = cols[0];
+  let ref = cols[1] || '';
+  let desc = cols[2];
+
+  if(!desc) continue;
+  desc = desc.replace(/\n/g, ' '); 
+  
+  let parsedDate = dateStr;
+  if(dateStr && dateStr.includes('/')){
+    let parts = dateStr.split('/');
+    if(parts.length === 3 && parts[2].length === 4){
+      parsedDate = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+    }
+  } else if(!dateStr) {
+    parsedDate = today();
+  }
+
+  // 1. ກວດສອບເງິນຮັບ
+  for(let f = 0; f < 4; f++){
+    let amt = num((cols[3 + f] || '').replace(/,/g, ''));
+    if(amt > 0){
+      // ກວດສອບວ່າເຄີຍມີລາຍການນີ້ແລ້ວບໍ່ (ຂໍ້ມູນຊ້ຳກັນ)
+      let isDuplicate = db.transactions.some(t => 
+          t.date === parsedDate && t.ref === ref && t.desc === desc && 
+          t.fund === fundIds[f] && t.type === 'receipt' && num(t.amount) === amt
+      );
+
+      if(!isDuplicate){
+          db.transactions.push({
+           id: crypto.randomUUID(),
+           date: parsedDate,
+           ref: ref,
+           desc: desc,
+           fund: fundIds[f],
+           type: 'receipt',
+           amount: amt,
+           account: '',
+           note: '',
+           created: Date.now() + i + (f * 0.1)
+          });
+          imported++;
+      } else {
+          skipped++; // ຖ້າຊ້ຳກັນ ໃຫ້ບວກຈຳນວນຂ້າມ ແລະ ບໍ່ບັນທຶກ
+      }
+    }
+  }
+
+  // 2. ກວດສອບເງິນຈ່າຍ
+  for(let f = 0; f < 4; f++){
+    if(8 + f < cols.length) {
+        let amt = num((cols[8 + f] || '').replace(/,/g, ''));
+        if(amt > 0){
+          // ກວດສອບວ່າເຄີຍມີລາຍການນີ້ແລ້ວບໍ່ (ຂໍ້ມູນຊ້ຳກັນ)
+          let isDuplicate = db.transactions.some(t => 
+              t.date === parsedDate && t.ref === ref && t.desc === desc && 
+              t.fund === fundIds[f] && t.type === 'payment' && num(t.amount) === amt
+          );
+
+          if(!isDuplicate){
+              db.transactions.push({
+               id: crypto.randomUUID(),
+               date: parsedDate,
+               ref: ref,
+               desc: desc,
+               fund: fundIds[f],
+               type: 'payment',
+               amount: amt,
+               account: '',
+               note: '',
+               created: Date.now() + i + 0.5 + (f * 0.1)
+              });
+              imported++;
+          } else {
+              skipped++; // ຖ້າຊ້ຳກັນ ໃຫ້ບວກຈຳນວນຂ້າມ ແລະ ບໍ່ບັນທຶກ
+          }
+        }
+    }
+  }
+ }
+ 
+ if(imported > 0 || skipped > 0){ 
+  if(imported > 0) saveDB(); 
+  
+  let msg = `ນຳເຂົ້າສຳເລັດ ${imported} ລາຍການ`;
+  if(skipped > 0) msg += ` (ຂ້າມຂໍ້ມູນທີ່ຊ້ຳກັນ ${skipped} ລາຍການ)`;
+  
+  alert(msg); 
+  closeImportModal();
+  showPage('transactions'); 
+ } else { 
+  alert('ບໍ່ພົບຂໍ້ມູນທີ່ຈະນຳເຂົ້າ ຫຼື ອາດເປັນຂໍ້ມູນທີ່ຊ້ຳກັນທັງໝົດແລ້ວ.'); 
+ }
+}
+
+// ================= CUSTOM POPUP SYSTEM =================
+document.body.insertAdjacentHTML('beforeend', `
+<div class="toast-container" id="toastBox"></div>
+<div class="confirm-overlay" id="confirmUI">
+  <div class="confirm-box">
+    <div class="confirm-icon">⚠️</div>
+    <div class="confirm-text" id="confirmMessage">ທ່ານແນ່ໃຈບໍ່?</div>
+    <div class="confirm-actions">
+      <button class="btn btn-light" id="confirmCancel">ຍົກເລີກ</button>
+      <button class="btn btn-danger" id="confirmOk">ຢືນຢັນລຶບ</button>
+    </div>
+  </div>
+</div>`);
+
+// ແປງຮ່າງ alert() ທຳມະດາ ໃຫ້ກາຍເປັນໂຕແຈ້ງເຕືອນແບບງາມໆ
+window.alert = function(msg) {
+  const box = document.getElementById('toastBox');
+  const toast = document.createElement('div');
+  
+  // ກວດສອບຖ້າເປັນຂໍ້ຄວາມເຕືອນ ຫຼື ຜິດພາດ ໃຫ້ປ່ຽນສີເປັນສີແດງ
+  let isError = msg.includes('ບໍ່') || msg.includes('ຜິດ') || msg.includes('ກະລຸນາ');
+  toast.className = 'toast' + (isError ? ' error' : '');
+  
+  let icon = isError ? '!' : '✓';
+  toast.innerHTML = `<div class="toast-icon">${icon}</div> <span>${msg}</span>`;
+  
+  box.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add('hide');
+    setTimeout(() => toast.remove(), 300);
+  }, 3500);
+};
+
+// ສ້າງຟັງຊັນ myConfirm ສຳລັບແທນທີ່ໂຕເກົ່າ
+window.myConfirm = function(msg, onYes) {
+  const ui = document.getElementById('confirmUI');
+  document.getElementById('confirmMessage').textContent = msg;
+  ui.classList.add('open');
+  const btnOk = document.getElementById('confirmOk');
+  const btnCancel = document.getElementById('confirmCancel');
+  
+  const cleanUp = () => { ui.classList.remove('open'); btnOk.onclick = null; btnCancel.onclick = null; };
+  btnOk.onclick = () => { cleanUp(); onYes(); };
+  btnCancel.onclick = () => { cleanUp(); };
+};
+// =======================================================
+
+</script>
+</body>
+</html>

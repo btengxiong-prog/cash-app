@@ -254,18 +254,26 @@ database.ref('treasury_data').on('value', (snapshot) => {
   if (data) {
     db = data;
     
-    // ປ້ອງກັນ Firebase ລຶບ Array ທີ່ຫວ່າງເປົ່າ (ຖ້າບໍ່ມີລາຍການມັນຈະ return ມາເປັນ undefined)
+    // ປ້ອງກັນ Firebase ລຶບ Array ທີ່ຫວ່າງເປົ່າ 
     if (!db.transactions) db.transactions = [];
     if (!db.funds) db.funds = defaultFunds;
     if (!db.accounts) db.accounts = defaultAccounts;
     if (!db.audit) db.audit = [];
     
-    // ອັບເດດ LocalStorage ໃຫ້ກົງກັບ Cloud ເພື່ອໃຫ້ຕອນ Refresh ມີຂໍ້ມູນສະເໝີ
+    // ອັບເດດ LocalStorage ໃຫ້ກົງກັບ Cloud
     localStorage.setItem(KEY, JSON.stringify(db));
   }
   
-  // ອັບເດດໜ້າຈໍທັນທີເມື່ອມີຂໍ້ມູນປ່ຽນແປງ
-  showPage(currentPage);
+  // [ປັບປຸງ Realtime UI] ເພື່ອບໍ່ໃຫ້ລົບກວນການພິມຄົ້ນຫາ ຫຼື ກອງຂໍ້ມູນຂອງຜູ້ໃຊ້
+  if (currentPage === 'transactions' && document.getElementById('txList')) {
+    filterTx(false); // ອັບເດດສະເພາະຕາຕະລາງລາຍການ ໂດຍຮັກສາຂໍ້ຄວາມທີ່ຄົ້ນຫາໄວ້ຄືເກົ່າ
+  } else if (currentPage === 'cashbook' && document.getElementById('cashbookContainer')) {
+    generateCashbook(); // ອັບເດດສະເພາະຕາຕະລາງປື້ມຄັງເງິນ
+  } else if (currentPage === 'reports' && document.getElementById('reportContainer')) {
+    generateReport(); // ອັບເດດສະເພາະຕາຕະລາງລາຍງານ
+  } else {
+    showPage(currentPage); // ໜ້າອື່ນໆໃຫ້ໂຫຼດໃໝ່ປົກກະຕິເພາະບໍ່ມີຊ່ອງພິມຂໍ້ມູນ
+  }
   
   if (isFirstLoad) {
     console.log("ເຊື່ອມຕໍ່ Realtime Database ສຳເລັດ!");

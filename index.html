@@ -300,6 +300,10 @@ function showPage(page){
  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
  const titles={dashboard:'ໜ້າຫຼັກ',cashbook:'ປື້ມຄັງເງິນສົດ',transactions:'ບັນທຶກຮັບ–ຈ່າຍ',accounts:'ໂຄງບັນຊີ',reports:'ລາຍງານ',settings:'ຕັ້ງຄ່າ'};
  document.getElementById('pageTitle').textContent=titles[page];
+ 
+ // ຣີເຊັດປຸ່ມໃນ Topbar ໃຫ້ກັບມາເປັນປົກກະຕິທຸກຄັ້ງທີ່ປ່ຽນໜ້າ
+ document.querySelector('.topbar .actions').innerHTML = '<button class="btn btn-light" onclick="backupData()">💾 Backup</button>';
+ 
  ({dashboard:renderDashboard,cashbook:renderCashbook,transactions:renderTransactions,accounts:renderAccounts,reports:renderReports,settings:renderSettings}[page])();
 }
 
@@ -466,31 +470,25 @@ function renderCashbook(){
  let years = [...new Set(db.transactions.map(t => t.date.substring(0,4)))].sort((a,b) => b - a);
  if(years.length === 0) years = [new Date().getFullYear().toString()];
  
+ // ເອົາຕົວເລືອກ ແລະ ປຸ່ມພິມ ໄປໄວ້ແຖວດຽວກັບປຸ່ມ Backup ໃນ Topbar
+ document.querySelector('.topbar .actions').innerHTML = `
+  <select id="cbYear" onchange="generateCashbook()" style="padding: 8px; border: 1px solid var(--border); border-radius: 8px; outline: none;">
+   ${years.map(y => `<option value="${y}">ປະຈຳປີ ${y}</option>`).join('')}
+  </select>
+  <select id="cbMonth" onchange="generateCashbook()" style="padding: 8px; border: 1px solid var(--border); border-radius: 8px; outline: none;">
+   <option value="all">ສະແດງທັງໝົດທຸກເດືອນໃນປີ</option>
+   <option value="01">ສະເພາະເດືອນ 1</option><option value="02">ສະເພາະເດືອນ 2</option><option value="03">ສະເພາະເດືອນ 3</option>
+   <option value="04">ສະເພາະເດືອນ 4</option><option value="05">ສະເພາະເດືອນ 5</option><option value="06">ສະເພາະເດືອນ 6</option>
+   <option value="07">ສະເພາະເດືອນ 7</option><option value="08">ສະເພາະເດືອນ 8</option><option value="09">ສະເພາະເດືອນ 9</option>
+   <option value="10">ສະເພາະເດືອນ 10</option><option value="11">ສະເພາະເດືອນ 11</option><option value="12">ສະເພາະເດືອນ 12</option>
+  </select>
+  <button class="btn btn-primary" onclick="window.print()">🖨 ພິມເອກະສານ</button>
+  <button class="btn btn-light" onclick="backupData()">💾 Backup</button>
+ `;
+
  document.getElementById('content').innerHTML=`
- <div class="panel no-print" style="margin-bottom:16px;">
-  <div class="panel-head">
-   <h2>ຕົວເລືອກສະແດງປື້ມຄັງເງິນສົດ</h2>
-   <div class="actions">
-    <button class="btn btn-primary" onclick="window.print()">🖨 ພິມເອກະສານ</button>
-   </div>
-  </div>
-  <div class="panel-body">
-   <div class="searchbar">
-    <select id="cbYear" onchange="generateCashbook()">
-     ${years.map(y => `<option value="${y}">ປະຈຳປີ ${y}</option>`).join('')}
-    </select>
-    <select id="cbMonth" onchange="generateCashbook()">
-     <option value="all">ສະແດງທັງໝົດທຸກເດືອນໃນປີ</option>
-     <option value="01">ສະເພາະເດືອນ 1</option><option value="02">ສະເພາະເດືອນ 2</option><option value="03">ສະເພາະເດືອນ 3</option>
-     <option value="04">ສະເພາະເດືອນ 4</option><option value="05">ສະເພາະເດືອນ 5</option><option value="06">ສະເພາະເດືອນ 6</option>
-     <option value="07">ສະເພາະເດືອນ 7</option><option value="08">ສະເພາະເດືອນ 8</option><option value="09">ສະເພາະເດືອນ 9</option>
-     <option value="10">ສະເພາະເດືອນ 10</option><option value="11">ສະເພາະເດືອນ 11</option><option value="12">ສະເພາະເດືອນ 12</option>
-    </select>
-   </div>
-   <div class="muted" style="font-size:12px; margin-top:8px;">* ການເລືອກປີ/ເດືອນ ຈະຊ່ວຍໃຫ້ໂຫຼດຂໍ້ມູນໄວຂຶ້ນເມື່ອມີຂໍ້ມູນຈຳນວນຫຼາຍ. ລະບົບຈະຄິດໄລ່ຍອດຍົກມາມາໃຫ້ອັດຕະໂນມັດ.</div>
-  </div>
- </div>
- <div class="panel" id="cashbookContainer"></div>`;
+ <div class="muted no-print" style="font-size:12px; margin-bottom:12px;">* ການເລືອກປີ/ເດືອນ ຈະຊ່ວຍໃຫ້ໂຫຼດຂໍ້ມູນໄວຂຶ້ນ. ລະບົບຈະຄິດໄລ່ຍອດຍົກມາມາໃຫ້ອັດຕະໂນມັດ.</div>
+ <div class="panel" id="cashbookContainer" style="margin-top:0;"></div>`;
  generateCashbook();
 }
 

@@ -255,18 +255,38 @@ function saveDB() {
     });
 }
 
+// ກວດສອບສະຖານະການເຊື່ອມຕໍ່ຕະຫຼອດເວລາ (Online / Offline)
+firebase.database().ref('.info/connected').on('value', function(snap) {
+  const statusEl = document.getElementById('networkStatus');
+  if(statusEl) {
+    if (snap.val() === true) {
+      statusEl.innerHTML = '🟢 ອອນລາຍ (Realtime ເປີດໃຊ້ງານ)';
+      statusEl.style.color = '#15803d';
+    } else {
+      statusEl.innerHTML = '🔴 ອອບລາຍ (ຫຼິ້ນໃນເຄື່ອງເທົ່ານັ້ນ)';
+      statusEl.style.color = '#b91c1c';
+    }
+  }
+});
+
+// ຟັງຊັນບັງຄັບດັນຂໍ້ມູນຈາກເຄື່ອງນີ້ຂຶ້ນ Cloud
+window.forceSync = function() {
+  myConfirm('ຕ້ອງການດັນຂໍ້ມູນຈາກເຄື່ອງນີ້ຂຶ້ນໄປທັບຂໍ້ມູນໃນ Cloud ແທ້ບໍ່?\n\n(ຂໍ້ຄວນລະວັງ: ຄວນກົດຈາກເຄື່ອງຄອມພິວເຕີທີ່ມີຂໍ້ມູນ 245 ລາຍການເທົ່ານັ້ນ ເພື່ອເອົາໄປທັບເຄື່ອງອື່ນ)', () => {
+    saveDB();
+    alert('ອັບໂຫຼດຂໍ້ມູນຂຶ້ນ Cloud ສຳເລັດແລ້ວ! ກະລຸນາກວດເບິ່ງໃນໂທລະສັບຂອງທ່ານ.');
+  });
+};
+
 // ດຶງຂໍ້ມູນແບບ Realtime ຈາກ Firebase
 database.ref('treasury_data').on('value', (snapshot) => {
   const data = snapshot.val();
   
   if (data) {
-    // 🌟 ຟັງຊັນສຳຄັນ: ແປງຂໍ້ມູນທີ່ອາດຖືກ Firebase ປ່ຽນເປັນ Object ໃຫ້ກັບມາເປັນ Array ເພື່ອບໍ່ໃຫ້ລະບົບ Error
     const toArray = (obj) => {
       if (!obj) return [];
       return Array.isArray(obj) ? obj : Object.values(obj);
     };
 
-    // ອັບເດດຂໍ້ມູນເຂົ້າ db ຢ່າງປອດໄພ
     db.settings = data.settings || {orgName:'ຫ້ອງການ/ໜ່ວຍງານ',currency:'ກີບ',opening:{budget:0,academic:0,support:0,fee:0}};
     db.transactions = toArray(data.transactions);
     
@@ -278,10 +298,8 @@ database.ref('treasury_data').on('value', (snapshot) => {
     
     db.audit = toArray(data.audit);
     
-    // ອັບເດດ LocalStorage ເພື່ອສຳຮອງໄວ້ໃນເຄື່ອງ
     localStorage.setItem(KEY, JSON.stringify(db));
     
-    // 🌟 ອັບເດດໜ້າຈໍແບບບໍ່ກະພິບ (ລວມທຸກໜ້າແລ້ວ)
     try {
       if (currentPage === 'transactions' && document.getElementById('txList')) {
         filterTx(false);
@@ -298,8 +316,8 @@ database.ref('treasury_data').on('value', (snapshot) => {
       console.error("UI Update Error:", err);
     }
   } else {
-    // ຖ້າ Firebase ຫວ່າງເປົ່າ ໃຫ້ບັນທຶກຈາກເຄື່ອງຂຶ້ນໄປ
-    saveDB();
+    // 🌟 ຖ້າ Cloud ຫວ່າງເປົ່າ ຈະບໍ່ອັບໂຫຼດອັດຕະໂນມັດແລ້ວ ເພື່ອປ້ອງກັນບໍ່ໃຫ້ເຄື່ອງໂທລະສັບ (ທີ່ມີ 0 ລາຍການ) ໄປລຶບຂໍ້ມູນໃນ Cloud
+    console.warn("ຂໍ້ມູນໃນ Cloud ຫວ່າງເປົ່າ. ກະລຸນາກົດປຸ່ມ 'ດັນຂໍ້ມູນຂຶ້ນ Cloud' ຈາກເຄື່ອງຄອມພິວເຕີ.");
   }
   
   if (isFirstLoad) {
@@ -308,7 +326,7 @@ database.ref('treasury_data').on('value', (snapshot) => {
   }
 }, (error) => {
     console.error("❌ ຂໍ້ຜິດພາດ Firebase:", error);
-    alert("❌ ເກີດຂໍ້ຜິດພາດໃນການເຊື່ອມຕໍ່ Firebase: " + error.message);
+    alert("❌ ເກີດຂໍ້ຜິດພາດໃນການເຊື່ອມຕໍ່ Firebase (ກວດສອບ Rules): " + error.message);
 });
 
 function money(n){return Number(n||0).toLocaleString('en-US')}
@@ -344,8 +362,21 @@ function showPage(page){
      document.getElementById('pageTitle').parentElement.style.display = 'block';
  }
  
- // ຣີເຊັດປຸ່ມໃນ Topbar ໃຫ້ກັບມາເປັນປົກກະຕິທຸກຄັ້ງທີ່ປ່ຽນໜ້າ
- document.querySelector('.topbar .actions').innerHTML = '<button class="btn btn-light" onclick="backupData()">💾 Backup</button>';
+// ຣີເຊັດປຸ່ມໃນ Topbar ໃຫ້ກັບມາເປັນປົກກະຕິທຸກຄັ້ງທີ່ປ່ຽນໜ້າ
+ document.querySelector('.topbar .actions').innerHTML = `
+    <span id="networkStatus" style="font-size:13px; font-weight:800; color:var(--muted); margin-right:10px;">⚪ ກຳລັງກວດສອບ...</span>
+    <button class="btn" onclick="forceSync()" style="background:#f59e0b; color:#fff; border-radius:8px;">☁️ ດັນຂໍ້ມູນຂຶ້ນ Cloud</button>
+    <button class="btn btn-light" onclick="backupData()">💾 Backup</button>
+ `;
+ 
+ // ກະຕຸ້ນອັບເດດສະຖານະການເຊື່ອມຕໍ່ທັນທີ
+ firebase.database().ref('.info/connected').once('value', snap => {
+    const el = document.getElementById('networkStatus');
+    if(el) {
+      el.innerHTML = snap.val() ? '🟢 ອອນລາຍ' : '🔴 ອອບລາຍ (ມີບັນຫາເນັດ/Firebase)';
+      el.style.color = snap.val() ? '#15803d' : '#b91c1c';
+    }
+ });
  
  ({dashboard:renderDashboard,cashbook:renderCashbook,transactions:renderTransactions,accounts:renderAccounts,reports:renderReports,settings:renderSettings}[page])();
 }
@@ -513,8 +544,9 @@ function renderCashbook(){
  let years = [...new Set(db.transactions.map(t => t.date.substring(0,4)))].sort((a,b) => b - a);
  if(years.length === 0) years = [new Date().getFullYear().toString()];
  
- // ເອົາຕົວເລືອກ ແລະ ປຸ່ມພິມ ໄປໄວ້ແຖວດຽວກັບປຸ່ມ Backup ໃນ Topbar
+// ເອົາຕົວເລືອກ ແລະ ປຸ່ມພິມ ໄປໄວ້ແຖວດຽວກັບປຸ່ມ Backup ໃນ Topbar
  document.querySelector('.topbar .actions').innerHTML = `
+  <span id="networkStatus" style="font-size:13px; font-weight:800; color:var(--muted); margin-right:10px;">⚪ ກຳລັງກວດສອບ...</span>
   <select id="cbYear" onchange="generateCashbook()" style="padding: 8px; border: 1px solid var(--border); border-radius: 8px; outline: none;">
    ${years.map(y => `<option value="${y}">ປະຈຳປີ ${y}</option>`).join('')}
   </select>

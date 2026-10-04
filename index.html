@@ -260,32 +260,45 @@ database.ref('treasury_data').on('value', (snapshot) => {
   const data = snapshot.val();
   
   if (data) {
-    db = data;
+    // 🌟 ຟັງຊັນສຳຄັນ: ແປງຂໍ້ມູນທີ່ອາດຖືກ Firebase ປ່ຽນເປັນ Object ໃຫ້ກັບມາເປັນ Array ເພື່ອບໍ່ໃຫ້ລະບົບ Error
+    const toArray = (obj) => {
+      if (!obj) return [];
+      return Array.isArray(obj) ? obj : Object.values(obj);
+    };
+
+    // ອັບເດດຂໍ້ມູນເຂົ້າ db ຢ່າງປອດໄພ
+    db.settings = data.settings || {orgName:'ຫ້ອງການ/ໜ່ວຍງານ',currency:'ກີບ',opening:{budget:0,academic:0,support:0,fee:0}};
+    db.transactions = toArray(data.transactions);
     
-    // ປ້ອງກັນ Firebase ລຶບ Array ທີ່ຫວ່າງເປົ່າ
-    if (!db.transactions) db.transactions = [];
-    if (!db.funds) db.funds = defaultFunds;
-    if (!db.accounts) db.accounts = defaultAccounts;
-    if (!db.audit) db.audit = [];
+    let tempFunds = toArray(data.funds);
+    db.funds = tempFunds.length > 0 ? tempFunds : defaultFunds;
     
-    // ອັບເດດ LocalStorage
+    let tempAccs = toArray(data.accounts);
+    db.accounts = tempAccs.length > 0 ? tempAccs : defaultAccounts;
+    
+    db.audit = toArray(data.audit);
+    
+    // ອັບເດດ LocalStorage ເພື່ອສຳຮອງໄວ້ໃນເຄື່ອງ
     localStorage.setItem(KEY, JSON.stringify(db));
     
-    // ອັບເດດໜ້າຈໍແບບບໍ່ກະພິບ
-    if (currentPage === 'transactions' && document.getElementById('txList')) {
-      filterTx(false);
-    } else if (currentPage === 'cashbook' && document.getElementById('cashbookContainer')) {
-      generateCashbook();
-    } else if (currentPage === 'reports' && document.getElementById('reportContainer')) {
-      generateReport();
-    } else if (currentPage === 'dashboard') {
-      renderDashboard(); // ແຕ້ມສະເພາະເນື້ອໃນໜ້າຫຼັກໃໝ່
-    } else {
-      showPage(currentPage);
+    // 🌟 ອັບເດດໜ້າຈໍແບບບໍ່ກະພິບ (ລວມທຸກໜ້າແລ້ວ)
+    try {
+      if (currentPage === 'transactions' && document.getElementById('txList')) {
+        filterTx(false);
+      } else if (currentPage === 'cashbook' && document.getElementById('cashbookContainer')) {
+        generateCashbook();
+      } else if (currentPage === 'reports' && document.getElementById('reportContainer')) {
+        generateReport();
+      } else if (currentPage === 'dashboard' && document.getElementById('content')) {
+        renderDashboard();
+      } else if (currentPage === 'accounts' && document.getElementById('content')) {
+        renderAccounts();
+      }
+    } catch (err) {
+      console.error("UI Update Error:", err);
     }
-    
   } else {
-    // 🌟 ສຳຄັນ: ຖ້າຖານຂໍ້ມູນ Firebase ຍັງຫວ່າງເປົ່າ ໃຫ້ດັນຂໍ້ມູນຈາກເຄື່ອງນີ້ຂຶ້ນໄປບັນທຶກກ່ອນ!
+    // ຖ້າ Firebase ຫວ່າງເປົ່າ ໃຫ້ບັນທຶກຈາກເຄື່ອງຂຶ້ນໄປ
     saveDB();
   }
   

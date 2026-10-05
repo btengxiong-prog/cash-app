@@ -407,8 +407,13 @@ function renderDashboard(){
  <div class="panel-body"><div class="table-wrap"><table><thead><tr><th>ໝວດ</th><th>ຍອດຍົກມາ</th><th>ຮັບ</th><th>ຈ່າຍ</th><th>ຍັງເຫຼືອ</th></tr></thead><tbody>
  ${db.funds.map(f=>`<tr><td><b>${esc(f.name)}</b></td><td class="num">${money(db.settings.opening[f.id])}</td><td class="num success">${money(ft[f.id].receipt)}</td><td class="num danger">${money(ft[f.id].payment)}</td><td class="num"><b>${money(ft[f.id].balance)}</b></td></tr>`).join('')}
  </tbody></table></div></div></div>
- <div class="panel"><div class="panel-head"><h2>ລາຍການລ່າສຸດ</h2><button class="btn btn-light no-print" onclick="showPage('transactions')">ທັງໝົດ</button></div>
- <div class="panel-body">${txTable(db.transactions.slice().sort((a,b)=>b.date.localeCompare(a.date)||b.created-b.created).slice(0,8))}</div></div>`;
+ <div class="panel">
+  <div class="panel-body" style="text-align: center; padding: 40px 20px; line-height: 1.6;">
+   <h2 style="color: var(--primary); margin: 0 0 12px 0; font-size: 20px;">ລະບົບຄຸ້ມຄອງຄັງເງິນສົດ ພະແນກສຶກສາທິການ ແລະ ກິລາແຂວງ</h2>
+   <div style="font-size: 16px; color: var(--text);">ຂຽນ ແລະ ພັດທະນາໂດຍ: <b>ອາຈານ ບຸນແຕ່ງ ຊົ່ງຕົງມົວ</b></div>
+   <div style="font-size: 15px; color: var(--muted); margin-top: 6px;">ໂທ: 020 5945 6999, 020 9944 4448</div>
+  </div>
+ </div>`;
 }
 
 function txTable(list){
@@ -683,7 +688,7 @@ function renderAccounts(){
  firebase.database().ref('.info/connected').once('value', snap => {
     const el = document.getElementById('networkStatus');
     if(el) {
-      el.innerHTML = snap.val() ? '🟢 ອອນລາຍ' : '🔴 ອອບລາຍ (ມີບັນຫາເນັດ/Firebase)';
+      el.innerHTML = snap.val() ? '🟢 ອອນລາຍ' : '🔴 ອອບລາຍ (ມີບັນຫາເນັດ)';
       el.style.color = snap.val() ? '#15803d' : '#b91c1c';
     }
  });

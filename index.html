@@ -211,6 +211,34 @@ hr.sep{border:0;border-top:1px solid var(--border);margin:16px 0}
  </div>
 </div>
 
+<div class="modal" id="userModal">
+ <div class="modal-box" style="width: min(500px, 100%);">
+  <div class="modal-head"><h3 id="userModalTitle">ເພີ່ມ/ແກ້ໄຂຜູ້ໃຊ້</h3><button class="btn btn-light" onclick="closeUserModal()">✕</button></div>
+  <form id="userForm">
+   <div class="modal-body">
+    <input type="hidden" id="oldUsername">
+    <div class="form-grid" style="grid-template-columns: 1fr;">
+      <div class="field"><label>Username (ຊື່ເຂົ້າໃຊ້) *</label><input id="uUsername" required></div>
+      <div class="field"><label>Password (ລະຫັດຜ່ານ) *</label><input id="uPassword" required></div>
+      <div class="field"><label>ຊື່ສະແດງ (Title) *</label><input id="uTitle" required placeholder="ຕົວຢ່າງ: ພະນັກງານບັນຊີ"></div>
+      <div class="field">
+        <label>ສິດການໃຊ້ງານ (Role) *</label>
+        <select id="uRole">
+          <option value="admin">Super Admin (ເຮັດໄດ້ທຸກຢ່າງ)</option>
+          <option value="cashier">ນາຍຄັງ (ປ້ອນໄດ້, ຫ້າມລຶບ/ແກ້)</option>
+          <option value="viewer">ຜູ້ບໍລິຫານ (ເບິ່ງໄດ້ຢ່າງດຽວ)</option>
+        </select>
+      </div>
+    </div>
+   </div>
+   <div class="modal-foot">
+    <button type="button" class="btn btn-light" onclick="closeUserModal()">ຍົກເລີກ</button>
+    <button type="submit" class="btn btn-primary">💾 ບັນທຶກ</button>
+   </div>
+  </form>
+ </div>
+</div>
+
 <!-- ນຳເຂົ້າ Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
@@ -252,31 +280,32 @@ const defaultAccounts=[
  {id:'e540',code:'540',name:'ລາຍຈ່າຍຄ່າທຳນຽມ',type:'expense',fund:'fee',note:''}
 ];
 
+const defaultUsers = {
+  'ADMIN-CASH': { pass: 'C@29962200', role: 'admin', title: 'Super Admin' },
+  'XBL-CASH': { pass: 'C@160800', role: 'cashier', title: 'ນາຍຄັງ' },
+  'XBL01': { pass: 'C@16080100', role: 'viewer', title: 'ຜູ້ບໍລິຫານ (ເບິ່ງ)' }
+};
+
 function loadDB() {
   try {
     const stored = localStorage.getItem(KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      // ປ້ອງກັນກໍລະນີ Array ຫາຍໄປ
       if (!parsed.transactions) parsed.transactions = [];
       if (!parsed.funds) parsed.funds = defaultFunds;
       if (!parsed.accounts) parsed.accounts = defaultAccounts;
       if (!parsed.audit) parsed.audit = [];
       if (!parsed.settings) parsed.settings = {orgName:'ຫ້ອງການ/ໜ່ວຍງານ',currency:'ກີບ',opening:{budget:0,academic:0,support:0,fee:0}};
+      if (!parsed.users) parsed.users = defaultUsers; // <== ເພີ່ມບ່ອນນີ້
       return parsed;
     }
   } catch (e) {
     console.error("Local storage error:", e);
   }
-  return {settings:{orgName:'ຫ້ອງການ/ໜ່ວຍງານ',currency:'ກີບ',opening:{budget:0,academic:0,support:0,fee:0}},funds:defaultFunds,accounts:defaultAccounts,transactions:[],audit:[]};
+  return {settings:{orgName:'ຫ້ອງການ/ໜ່ວຍງານ',currency:'ກີບ',opening:{budget:0,academic:0,support:0,fee:0}},funds:defaultFunds,accounts:defaultAccounts,transactions:[],audit:[],users:defaultUsers};
 }
 
 // --- ລະບົບ USER & LOGIN ---
-const USERS = {
-  'ADMIN-CASH': { pass: 'C@29962200', role: 'admin', title: 'Super Admin' },
-  'XBL-CASH': { pass: 'C@160800', role: 'cashier', title: 'ນາຍຄັງ' },
-  'XBL01': { pass: 'C@16080100', role: 'viewer', title: 'ຜູ້ບໍລິຫານ (ເບິ່ງ)' }
-};
 let currentUser = JSON.parse(localStorage.getItem('treasury_user')) || null;
 
 function renderUserBadge() {
@@ -294,8 +323,8 @@ document.getElementById('loginForm').addEventListener('submit', (e) => {
   const u = document.getElementById('loginUser').value.trim();
   const p = document.getElementById('loginPass').value.trim();
   
-  if(USERS[u] && USERS[u].pass === p) {
-    currentUser = { username: u, ...USERS[u] };
+  if(db.users && db.users[u] && db.users[u].pass === p) {
+    currentUser = { username: u, ...db.users[u] };
     localStorage.setItem('treasury_user', JSON.stringify(currentUser));
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('mainApp').classList.remove('hidden');
@@ -356,6 +385,7 @@ database.ref('treasury_data').on('value', (snapshot) => {
     };
 
     db.settings = data.settings || {orgName:'ຫ້ອງການ/ໜ່ວຍງານ',currency:'ກີບ',opening:{budget:0,academic:0,support:0,fee:0}};
+    db.users = data.users || defaultUsers; // <== ຊິງຄ໌ລະບົບ User
     db.transactions = toArray(data.transactions);
     
     let tempFunds = toArray(data.funds);
@@ -943,6 +973,32 @@ function renderSettings(){
  let saveBtn = currentUser.role === 'admin' ? `<div class="actions no-print" style="margin-top:14px"><button class="btn btn-primary" onclick="saveSettings()">💾 ບັນທຶກຕັ້ງຄ່າ</button></div>` : '';
  let restoreBtn = currentUser.role === 'admin' ? `<label class="btn btn-light">⬆ ກູ້ຄືນ JSON<input type="file" accept=".json" onchange="restoreData(event)" hidden></label><button class="btn btn-danger" onclick="resetData()">⚠ ລ້າງຂໍ້ມູນທົດລອງ</button>` : '';
 
+ let usersPanel = '';
+ if (currentUser.role === 'admin' && db.users) {
+   let userRows = Object.keys(db.users).map((username, i) => {
+     let u = db.users[username];
+     let roleStr = u.role === 'admin' ? 'Super Admin' : (u.role === 'cashier' ? 'ນາຍຄັງ' : 'ຜູ້ບໍລິຫານ (ເບິ່ງ)');
+     let actions = username !== currentUser.username ? `<button class="btn btn-light" onclick="editUser('${username}')">ແກ້</button> <button class="btn btn-danger" onclick="deleteUser('${username}')">ລົບ</button>` : `<span class="muted" style="font-size:12px;">ກຳລັງໃຊ້ງານ</span>`;
+     return `<tr><td class="center">${i+1}</td><td><b>${esc(username)}</b></td><td>${esc(u.pass)}</td><td>${esc(u.title)}</td><td><span class="badge ${u.role === 'admin' ? 'receipt' : (u.role === 'cashier' ? 'active' : 'payment')}">${roleStr}</span></td><td class="no-print">${actions}</td></tr>`;
+   }).join('');
+
+   usersPanel = `
+   <div class="panel">
+     <div class="panel-head">
+       <h2>👥 ຈັດການຜູ້ໃຊ້ (User Management)</h2>
+       <div class="actions no-print"><button class="btn btn-primary" onclick="openUserModal()">＋ ເພີ່ມຜູ້ໃຊ້</button></div>
+     </div>
+     <div class="panel-body">
+       <div class="table-wrap">
+         <table>
+           <thead><tr><th style="width:50px">ລ/ດ</th><th>Username</th><th>Password</th><th>ຊື່ສະແດງ</th><th>ສິດການໃຊ້ງານ</th><th class="no-print">ຈັດການ</th></tr></thead>
+           <tbody>${userRows}</tbody>
+         </table>
+       </div>
+     </div>
+   </div>`;
+ }
+
  document.getElementById('content').innerHTML=`
  <div class="panel"><div class="panel-head"><h2>ຕັ້ງຄ່າລະບົບ</h2></div><div class="panel-body">
  <div class="form-grid">
@@ -952,6 +1008,7 @@ function renderSettings(){
  <div class="form-grid">${db.funds.map(f=>`<div class="field"><label>${esc(f.name)}</label><input type="text" id="open_${f.id}" value="${money(db.settings.opening[f.id])}" oninput="this.value = this.value.replace(/[^0-9]/g, '').replace(/\\B(?=(\\d{3})+(?!\\d))/g, ',')" ${d}></div>`).join('')}</div>
  ${saveBtn}
  </div></div>
+ ${usersPanel}
  <div class="panel"><div class="panel-head"><h2>ສຳຮອງ/ກູ້ຄືນຂໍ້ມູນ</h2></div><div class="panel-body"><div class="actions no-print"><button class="btn btn-light" onclick="backupData()">⬇ ສຳຮອງ JSON</button>${restoreBtn}</div></div></div>`;
 }
 
@@ -1034,7 +1091,9 @@ function exportCSV(){
 function backupData(){downloadBlob(JSON.stringify(db,null,2),'cash-treasury-backup.json','application/json')}
 function downloadBlob(content,name,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 function restoreData(ev){
- const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!x.transactions||!x.accounts||!x.funds)throw Error();db=x;saveDB();alert('ກູ້ຄືນຂໍ້ມູນສຳເລັດ');showPage(currentPage)}catch(e){alert('ໄຟລ໌ JSON ບໍ່ຖືກຕ້ອງ')}};r.readAsText(f)}
+ const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!x.transactions||!x.accounts||!x.funds)throw Error();
+ if(!x.users) x.users = db.users; // ຮັກສາ user ເກົ່າໄວ້ຖ້າໄຟລ໌ backup ເປັນຮຸ່ນເກົ່າ
+ db=x;saveDB();alert('ກູ້ຄືນຂໍ້ມູນສຳເລັດ');showPage(currentPage)}catch(e){alert('ໄຟລ໌ JSON ບໍ່ຖືກຕ້ອງ')}};r.readAsText(f)}
 
 function resetData(){
   myConfirm('ຈະລຶບຂໍ້ມູນລາຍການທັງໝົດ ແລະກັບໄປຄ່າເລີ່ມຕົ້ນ.\nຂໍ້ມູນທີ່ລຶບແລ້ວບໍ່ສາມາດກູ້ຄືນໄດ້, ແນ່ໃຈບໍ?', () => {
@@ -1186,6 +1245,75 @@ function processPasteData(){
  } else { 
   alert('ບໍ່ພົບຂໍ້ມູນທີ່ຈະນຳເຂົ້າ ຫຼື ອາດເປັນຂໍ້ມູນທີ່ຊ້ຳກັນທັງໝົດແລ້ວ.'); 
  }
+}
+
+// ================= USER MANAGEMENT SYSTEM =================
+function openUserModal(username = null) {
+  document.getElementById('userForm').reset();
+  document.getElementById('oldUsername').value = username || '';
+  document.getElementById('userModalTitle').textContent = username ? 'ແກ້ໄຂຜູ້ໃຊ້' : 'ເພີ່ມຜູ້ໃຊ້ໃໝ່';
+  
+  if(username && db.users[username]) {
+    const u = db.users[username];
+    document.getElementById('uUsername').value = username;
+    document.getElementById('uPassword').value = u.pass;
+    document.getElementById('uTitle').value = u.title;
+    document.getElementById('uRole').value = u.role;
+  }
+  
+  document.getElementById('userModal').classList.add('open');
+}
+
+function closeUserModal() {
+  document.getElementById('userModal').classList.remove('open');
+}
+
+document.getElementById('userForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const oldU = document.getElementById('oldUsername').value;
+  const newU = document.getElementById('uUsername').value.trim();
+  const pass = document.getElementById('uPassword').value.trim();
+  const title = document.getElementById('uTitle').value.trim();
+  const role = document.getElementById('uRole').value;
+  
+  if(!newU || !pass || !title) { alert('ກະລຸນາປ້ອນຂໍ້ມູນໃຫ້ຄົບຖ້ວນ'); return; }
+  
+  // ກວດສອບຊື່ຊ້ຳກັນ
+  if(oldU && oldU !== newU && db.users[newU]) {
+     alert('Username ນີ້ມີໃນລະບົບແລ້ວ!'); return;
+  } else if(!oldU && db.users[newU]) {
+     alert('Username ນີ້ມີໃນລະບົບແລ້ວ!'); return;
+  }
+  
+  if(!db.users) db.users = {};
+  
+  // ຖ້າປ່ຽນ Username ໃໝ່ ໃຫ້ລຶບໂຕເກົ່າຖິ້ມ
+  if (oldU && oldU !== newU) {
+    delete db.users[oldU];
+  }
+  
+  db.users[newU] = { pass, title, role };
+  
+  saveDB();
+  closeUserModal();
+  showPage('settings');
+  alert('ບັນທຶກຂໍ້ມູນຜູ້ໃຊ້ສຳເລັດ!');
+});
+
+function editUser(username) {
+  openUserModal(username);
+}
+
+function deleteUser(username) {
+  if (username === currentUser.username) {
+    alert('ບໍ່ສາມາດລຶບ User ໂຕເອງໄດ້!');
+    return;
+  }
+  myConfirm(`ທ່ານຕ້ອງການລຶບຜູ້ໃຊ້: "${username}" ແທ້ບໍ່?`, () => {
+    delete db.users[username];
+    saveDB();
+    showPage('settings');
+  });
 }
 
 // ================= CUSTOM POPUP SYSTEM =================

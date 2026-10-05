@@ -461,9 +461,11 @@ function showPage(page){
  }
  
 // ຣີເຊັດປຸ່ມໃນ Topbar ໃຫ້ກັບມາເປັນປົກກະຕິທຸກຄັ້ງທີ່ປ່ຽນໜ້າ
- document.querySelector('.topbar .actions').innerHTML = `
-    <button class="btn btn-light" onclick="backupData()">💾 Backup</button>
- `;
+ let topbarHtml = `<button class="btn btn-light" onclick="backupData()">💾 Backup</button>`;
+ if (page === 'dashboard') {
+    topbarHtml += ` <button class="btn btn-danger no-print" onclick="logout()">ອອກລະບົບ</button>`;
+ }
+ document.querySelector('.topbar .actions').innerHTML = topbarHtml;
  
  ({dashboard:renderDashboard,cashbook:renderCashbook,transactions:renderTransactions,accounts:renderAccounts,reports:renderReports,settings:renderSettings}[page])();
 }
@@ -489,7 +491,7 @@ function renderDashboard(){
   <div class="card balance"><div class="label">ຍອດເຫຼືອສຸດທ້າຍ</div><div class="value">${money(t.balance)}</div></div>
   <div class="card"><div class="label">ຈຳນວນລາຍການ</div><div class="value">${db.transactions.length.toLocaleString()}</div></div>
  </div>
- <div class="panel"><div class="panel-head"><h2>ຍອດແຍກຕາມໝວດເງິນ</h2><div class="actions no-print"><button class="btn btn-light" onclick="showPage('reports')">ເບິ່ງລາຍງານ</button><button class="btn btn-danger no-print" onclick="logout()">ອອກລະບົບ</button></div></div>
+ <div class="panel"><div class="panel-head"><h2>ຍອດແຍກຕາມໝວດເງິນ</h2><div class="actions no-print"><button class="btn btn-light" onclick="showPage('reports')">ເບິ່ງລາຍງານ</button></div></div>
  <div class="panel-body"><div class="table-wrap"><table><thead><tr><th>ໝວດ</th><th>ຍອດຍົກມາ</th><th>ຮັບ</th><th>ຈ່າຍ</th><th>ຍັງເຫຼືອ</th></tr></thead><tbody>
  ${db.funds.map(f=>`<tr><td><b>${esc(f.name)}</b></td><td class="num">${money(db.settings.opening[f.id])}</td><td class="num success">${money(ft[f.id].receipt)}</td><td class="num danger">${money(ft[f.id].payment)}</td><td class="num"><b>${money(ft[f.id].balance)}</b></td></tr>`).join('')}
  </tbody></table></div></div></div>
@@ -526,8 +528,7 @@ function renderTransactions(){
  if (currentUser.role !== 'viewer') {
    topbarActions += `<button class="btn btn-primary no-print" onclick="openTransactionModal()">＋ ເພີ່ມລາຍການ</button>`;
  }
- topbarActions += `<button class="btn btn-light" onclick="backupData()">💾 Backup</button>
-                   <button class="btn btn-danger no-print" onclick="logout()">ອອກລະບົບ</button>`;
+ topbarActions += `<button class="btn btn-light" onclick="backupData()">💾 Backup</button>`;
  document.querySelector('.topbar .actions').innerHTML = topbarActions;
 
  let pasteExcelBtn = '';
@@ -674,7 +675,6 @@ function renderCashbook(){
   </select>
   <button class="btn btn-primary" onclick="window.print()">🖨 ພິມເອກະສານ</button>
   <button class="btn btn-light" onclick="backupData()">💾 Backup</button>
-  <button class="btn btn-danger no-print" onclick="logout()">ອອກລະບົບ</button>
  `;
 
  // ເພີ່ມ full-view ເຂົ້າໄປເພື່ອໃຫ້ຕາຕະລາງຍືດເຕັມຈໍ
@@ -791,8 +791,7 @@ function renderAccounts(){
  if(currentUser.role === 'admin') {
    topbarActions += `<button class="btn btn-primary no-print" onclick="openAccountModal()">＋ ເພີ່ມບັນຊີ</button>`;
  }
- topbarActions += `<button class="btn btn-light" onclick="backupData()">💾 Backup</button>
-                   <button class="btn btn-danger no-print" onclick="logout()">ອອກລະບົບ</button>`;
+ topbarActions += `<button class="btn btn-light" onclick="backupData()">💾 Backup</button>`;
  document.querySelector('.topbar .actions').innerHTML = topbarActions;
 
  let thead = `<tr><th>ລະຫັດ</th><th>ຊື່ບັນຊີ</th><th>ປະເພດ</th><th>ໝວດເງິນ</th><th>ລາຍລະອຽດ</th>`;
@@ -825,7 +824,6 @@ function renderReports(){
       <div class="actions">
         <button class="btn btn-primary" onclick="window.print()">🖨 ພິມລາຍງານ</button>
         <button class="btn btn-light" onclick="exportReportCSV()">⬇ CSV</button>
-        <button class="btn btn-danger no-print" onclick="logout()">ອອກລະບົບ</button>
       </div>
     </div>
     <div class="panel-body">
@@ -967,7 +965,6 @@ function exportReportCSV() {
 }
 
 function renderSettings(){
- document.querySelector('.topbar .actions').innerHTML = `<button class="btn btn-danger no-print" onclick="logout()">ອອກລະບົບ</button>`;
  let d = currentUser.role !== 'admin' ? 'disabled' : '';
  
  let saveBtn = currentUser.role === 'admin' ? `<div class="actions no-print" style="margin-top:14px"><button class="btn btn-primary" onclick="saveSettings()">💾 ບັນທຶກຕັ້ງຄ່າ</button></div>` : '';
@@ -1000,11 +997,7 @@ function renderSettings(){
  }
 
  document.getElementById('content').innerHTML=`
- <div class="panel"><div class="panel-head"><h2>ຕັ້ງຄ່າລະບົບ</h2></div><div class="panel-body">
- <div class="form-grid">
-  <div class="field full"><label>ຊື່ໜ່ວຍງານ</label><input id="setOrg" value="${esc(db.settings.orgName)}" ${d}></div>
-  <div class="field"><label>ໜ່ວຍເງິນ</label><input id="setCurrency" value="${esc(db.settings.currency)}" ${d}></div>
- </div><hr class="sep"><h3>ຍອດຍົກມາ</h3>
+ <div class="panel"><div class="panel-head"><h2>ຕັ້ງຄ່າຍອດຍົກມາ</h2></div><div class="panel-body">
  <div class="form-grid">${db.funds.map(f=>`<div class="field"><label>${esc(f.name)}</label><input type="text" id="open_${f.id}" value="${money(db.settings.opening[f.id])}" oninput="this.value = this.value.replace(/[^0-9]/g, '').replace(/\\B(?=(\\d{3})+(?!\\d))/g, ',')" ${d}></div>`).join('')}</div>
  ${saveBtn}
  </div></div>
@@ -1076,8 +1069,6 @@ function deleteAccount(id){
 }
 
 function saveSettings(){
- db.settings.orgName=document.getElementById('setOrg').value.trim()||'ຫ້ອງການ/ໜ່ວຍງານ';
- db.settings.currency=document.getElementById('setCurrency').value.trim()||'ກີບ';
  db.funds.forEach(f=>db.settings.opening[f.id]=num(document.getElementById('open_'+f.id).value));
  saveDB();alert('ບັນທຶກຕັ້ງຄ່າແລ້ວ');showPage('settings');
 }

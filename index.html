@@ -537,7 +537,7 @@ function renderCashbook(){
  let years = [...new Set(db.transactions.map(t => t.date.substring(0,4)))].sort((a,b) => b - a);
  if(years.length === 0) years = [new Date().getFullYear().toString()];
  
-// ເອົາຕົວເລືອກ ແລະ ປຸ່ມພິມ ໄປໄວ້ແຖວດຽວກັບປຸ່ມ Backup ໃນ Topbar
+ // ເອົາຕົວເລືອກ ແລະ ປຸ່ມພິມ ໄປໄວ້ແຖວດຽວກັບປຸ່ມ Backup ໃນ Topbar (ລຶບສະຖານະອອນລາຍອອກແລ້ວ)
  document.querySelector('.topbar .actions').innerHTML = `
   <select id="cbYear" onchange="generateCashbook()" style="padding: 8px; border: 1px solid var(--border); border-radius: 8px; outline: none;">
    ${years.map(y => `<option value="${y}">ປະຈຳປີ ${y}</option>`).join('')}
@@ -553,8 +553,10 @@ function renderCashbook(){
   <button class="btn btn-light" onclick="backupData()">💾 Backup</button>
  `;
 
+ // ເພີ່ມ full-view ເຂົ້າໄປເພື່ອໃຫ້ຕາຕະລາງຍືດເຕັມຈໍ
  document.getElementById('content').innerHTML=`
  <div class="panel full-view" id="cashbookContainer" style="margin-top:0;"></div>`;
+ 
  generateCashbook();
 }
 

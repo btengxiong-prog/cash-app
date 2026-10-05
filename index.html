@@ -419,8 +419,25 @@ function txTable(list){
 }
 
 function renderTransactions(){
+ // 1. ຍ້າຍປຸ່ມໄປໄວ້ແຖວດຽວກັບ Topbar (ແຖບວັນທີ ແລະ Backup)
+ document.querySelector('.topbar .actions').innerHTML = `
+  <span id="networkStatus" style="font-size:13px; font-weight:800; color:var(--muted); margin-right:10px;">⚪ ກຳລັງກວດສອບ...</span>
+  <button class="btn btn-primary no-print" onclick="openTransactionModal()">＋ ເພີ່ມລາຍການ</button>
+  <button class="btn btn-light" onclick="backupData()">💾 Backup</button>
+ `;
+ 
+ // 2. ກະຕຸ້ນສະຖານະອອນລາຍຄືນໃຫ້ສະແດງຜົນທັນທີ
+ firebase.database().ref('.info/connected').once('value', snap => {
+    const el = document.getElementById('networkStatus');
+    if(el) {
+      el.innerHTML = snap.val() ? '🟢 ອອນລາຍ' : '🔴 ອອບລາຍ (ມີບັນຫາເນັດ/Firebase)';
+      el.style.color = snap.val() ? '#15803d' : '#b91c1c';
+    }
+ });
+
+ // 3. ສ້າງໜ້າບັນທຶກລາຍການ (ເອົາ panel-head ອອກ ເພື່ອໃຫ້ລຽບງາມສະອາດຕາ ແລະ ຍັບຂຶ້ນເທິງ)
  document.getElementById('content').innerHTML=`
- <div class="panel"><div class="panel-head"><h2>ບັນທຶກລາຍການ</h2><button class="btn btn-primary no-print" onclick="openTransactionModal()">＋ ເພີ່ມລາຍການ</button></div>
+ <div class="panel" style="margin-top:0;">
  <div class="panel-body"><div class="searchbar no-print">
  <input id="txSearch" placeholder="ຄົ້ນຫາເນື້ອໃນ/ເລກທີ" oninput="filterTx(true)">
  <select id="txFilterType" onchange="filterTx(true)"><option value="">ທັງໝົດ</option><option value="receipt">ຮັບ</option><option value="payment">ຈ່າຍ</option></select>
@@ -655,8 +672,25 @@ function cashbookRowsFiltered(year, month){
 }
 
 function renderAccounts(){
+ // 1. ຍ້າຍປຸ່ມໄປໄວ້ແຖວດຽວກັບ Topbar
+ document.querySelector('.topbar .actions').innerHTML = `
+  <span id="networkStatus" style="font-size:13px; font-weight:800; color:var(--muted); margin-right:10px;">⚪ ກຳລັງກວດສອບ...</span>
+  <button class="btn btn-primary no-print" onclick="openAccountModal()">＋ ເພີ່ມບັນຊີ</button>
+  <button class="btn btn-light" onclick="backupData()">💾 Backup</button>
+ `;
+ 
+ // 2. ກະຕຸ້ນສະຖານະອອນລາຍຄືນໃຫ້ສະແດງຜົນທັນທີ
+ firebase.database().ref('.info/connected').once('value', snap => {
+    const el = document.getElementById('networkStatus');
+    if(el) {
+      el.innerHTML = snap.val() ? '🟢 ອອນລາຍ' : '🔴 ອອບລາຍ (ມີບັນຫາເນັດ/Firebase)';
+      el.style.color = snap.val() ? '#15803d' : '#b91c1c';
+    }
+ });
+
+ // 3. ສ້າງຕາຕະລາງບັນຊີ (ເອົາ panel-head ອອກ ເພື່ອໃຫ້ລຽບງາມສະອາດຕາ)
  document.getElementById('content').innerHTML=`
- <div class="panel"><div class="panel-head"><h2>ໂຄງບັນຊີ (Chart of Accounts)</h2><button class="btn btn-primary no-print" onclick="openAccountModal()">＋ ເພີ່ມບັນຊີ</button></div>
+ <div class="panel" style="margin-top:0;">
  <div class="panel-body"><div class="muted" style="margin-bottom:12px">ໂຄງນີ້ສາມາດປັບລະຫັດ ແລະ ເພີ່ມບັນຊີຕາມລະບຽບຂອງໜ່ວຍງານ.</div>
  <div class="table-wrap"><table><thead><tr><th>ລະຫັດ</th><th>ຊື່ບັນຊີ</th><th>ປະເພດ</th><th>ໝວດເງິນ</th><th>ລາຍລະອຽດ</th><th class="no-print">ຈັດການ</th></tr></thead><tbody>
  ${db.accounts.map(a=>`<tr><td><b>${esc(a.code)}</b></td><td>${esc(a.name)}</td><td>${a.type==='asset'?'ຊັບສິນ':a.type==='income'?'ລາຍຮັບ':'ລາຍຈ່າຍ'}</td><td>${esc(fundName(a.fund))}</td><td>${esc(a.note||'')}</td><td class="no-print"><button class="btn btn-light" onclick="editAccount('${a.id}')">ແກ້</button> <button class="btn btn-danger" onclick="deleteAccount('${a.id}')">ລົບ</button></td></tr>`).join('')}

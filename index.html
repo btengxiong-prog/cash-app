@@ -210,6 +210,43 @@ hr.sep{border:0;border-top:1px solid var(--border);margin:16px 0}
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
 <script>
+// ================= CUSTOM POPUP SYSTEM =================
+document.body.insertAdjacentHTML('beforeend', `
+<div class="toast-container" id="toastBox"></div>
+<div class="confirm-overlay" id="confirmUI">
+  <div class="confirm-box">
+    <div class="confirm-icon">⚠️</div>
+    <div class="confirm-text" id="confirmMessage">ທ່ານແນ່ໃຈບໍ່?</div>
+    <div class="confirm-actions">
+      <button class="btn btn-light" id="confirmCancel">ຍົກເລີກ</button>
+      <button class="btn btn-danger" id="confirmOk">ຢືນຢັນລຶບ</button>
+    </div>
+  </div>
+</div>`);
+
+window.alert = function(msg) {
+  const box = document.getElementById('toastBox');
+  const toast = document.createElement('div');
+  let isError = msg.includes('ບໍ່') || msg.includes('ຜິດ') || msg.includes('ກະລຸນາ') || msg.includes('ລົ້ມເຫຼວ') || msg.includes('❌');
+  toast.className = 'toast' + (isError ? ' error' : '');
+  let icon = isError ? '!' : '✓';
+  toast.innerHTML = `<div class="toast-icon">${icon}</div> <span>${msg}</span>`;
+  box.appendChild(toast);
+  setTimeout(() => { toast.classList.add('hide'); setTimeout(() => toast.remove(), 300); }, 3500);
+};
+
+window.myConfirm = function(msg, onYes) {
+  const ui = document.getElementById('confirmUI');
+  document.getElementById('confirmMessage').textContent = msg;
+  ui.classList.add('open');
+  const btnOk = document.getElementById('confirmOk');
+  const btnCancel = document.getElementById('confirmCancel');
+  const cleanUp = () => { ui.classList.remove('open'); btnOk.onclick = null; btnCancel.onclick = null; };
+  btnOk.onclick = () => { cleanUp(); onYes(); };
+  btnCancel.onclick = () => { cleanUp(); };
+};
+// =======================================================
+
 const firebaseConfig = {
   apiKey: "AIzaSyAkue9Xc8Qt-Cpi0_OX6RaHWxhgc9fP7qg",
   authDomain: "cash-treasury-lao.firebaseapp.com",
@@ -894,28 +931,6 @@ function processPasteData(){
    alert(msg); closeImportModal(); showPage('transactions'); 
   } else { alert('ບໍ່ພົບຂໍ້ມູນທີ່ຈະນຳເຂົ້າ ຫຼື ອາດເປັນຂໍ້ມູນທີ່ຊ້ຳກັນທັງໝົດແລ້ວ.'); }
 }
-
-window.alert = function(msg) {
-  const box = document.getElementById('toastBox');
-  const toast = document.createElement('div');
-  let isError = msg.includes('ບໍ່') || msg.includes('ຜິດ') || msg.includes('ກະລຸນາ') || msg.includes('ລົ້ມເຫຼວ') || msg.includes('❌');
-  toast.className = 'toast' + (isError ? ' error' : '');
-  let icon = isError ? '!' : '✓';
-  toast.innerHTML = `<div class="toast-icon">${icon}</div> <span>${msg}</span>`;
-  box.appendChild(toast);
-  setTimeout(() => { toast.classList.add('hide'); setTimeout(() => toast.remove(), 300); }, 3500);
-};
-
-window.myConfirm = function(msg, onYes) {
-  const ui = document.getElementById('confirmUI');
-  document.getElementById('confirmMessage').textContent = msg;
-  ui.classList.add('open');
-  const btnOk = document.getElementById('confirmOk');
-  const btnCancel = document.getElementById('confirmCancel');
-  const cleanUp = () => { ui.classList.remove('open'); btnOk.onclick = null; btnCancel.onclick = null; };
-  btnOk.onclick = () => { cleanUp(); onYes(); };
-  btnCancel.onclick = () => { cleanUp(); };
-};
 
 showPage('dashboard');
 </script>

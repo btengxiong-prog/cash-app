@@ -6,9 +6,9 @@
 <title>ລະບົບຄັງເງິນສົດ</title>
 <style>
 :root{
-  --primary:#0f766e;--primary2:#115e59;--bg:#f4f7f8;--card:#fff;
+  --primary:#0f766e;--primary2:#115e59;--bg:linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);--card:#fff;
   --text:#172033;--muted:#64748b;--border:#d9e1e7;--danger:#b91c1c;
-  --success:#15803d;--warning:#b45309;--shadow:0 4px 18px rgba(15,23,42,.07)
+  --success:#15803d;--warning:#b45309;--shadow:0 8px 24px rgba(15,23,42,.08)
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font-family:"Noto Sans Lao","Phetsarath OT","Segoe UI",sans-serif}
@@ -257,20 +257,6 @@ function saveDB() {
     });
 }
 
-// ກວດສອບສະຖານະການເຊື່ອມຕໍ່ຕະຫຼອດເວລາ (Online / Offline)
-firebase.database().ref('.info/connected').on('value', function(snap) {
-  const statusEl = document.getElementById('networkStatus');
-  if(statusEl) {
-    if (snap.val() === true) {
-      statusEl.innerHTML = '🟢 ອອນລາຍ (Realtime ເປີດໃຊ້ງານ)';
-      statusEl.style.color = '#15803d';
-    } else {
-      statusEl.innerHTML = '🔴 ອອບລາຍ (ຫຼິ້ນໃນເຄື່ອງເທົ່ານັ້ນ)';
-      statusEl.style.color = '#b91c1c';
-    }
-  }
-});
-
 // ຟັງຊັນບັງຄັບດັນຂໍ້ມູນຈາກເຄື່ອງນີ້ຂຶ້ນ Cloud
 window.forceSync = function() {
   myConfirm('ຕ້ອງການດັນຂໍ້ມູນຈາກເຄື່ອງນີ້ຂຶ້ນໄປທັບຂໍ້ມູນໃນ Cloud ແທ້ບໍ່?\n\n(ຂໍ້ຄວນລະວັງ: ຄວນກົດຈາກເຄື່ອງຄອມພິວເຕີທີ່ມີຂໍ້ມູນ 245 ລາຍການເທົ່ານັ້ນ ເພື່ອເອົາໄປທັບເຄື່ອງອື່ນ)', () => {
@@ -366,18 +352,8 @@ function showPage(page){
  
 // ຣີເຊັດປຸ່ມໃນ Topbar ໃຫ້ກັບມາເປັນປົກກະຕິທຸກຄັ້ງທີ່ປ່ຽນໜ້າ
  document.querySelector('.topbar .actions').innerHTML = `
-    <span id="networkStatus" style="font-size:13px; font-weight:800; color:var(--muted); margin-right:10px;">⚪ ກຳລັງກວດສອບ...</span>
     <button class="btn btn-light" onclick="backupData()">💾 Backup</button>
  `;
- 
- // ກະຕຸ້ນອັບເດດສະຖານະການເຊື່ອມຕໍ່ທັນທີ
- firebase.database().ref('.info/connected').once('value', snap => {
-    const el = document.getElementById('networkStatus');
-    if(el) {
-      el.innerHTML = snap.val() ? '🟢 ອອນລາຍ' : '🔴 ອອບລາຍ (ມີບັນຫາເນັດ/Firebase)';
-      el.style.color = snap.val() ? '#15803d' : '#b91c1c';
-    }
- });
  
  ({dashboard:renderDashboard,cashbook:renderCashbook,transactions:renderTransactions,accounts:renderAccounts,reports:renderReports,settings:renderSettings}[page])();
 }
@@ -426,19 +402,9 @@ function txTable(list){
 function renderTransactions(){
  // 1. ຍ້າຍປຸ່ມໄປໄວ້ແຖວດຽວກັບ Topbar (ແຖບວັນທີ ແລະ Backup)
  document.querySelector('.topbar .actions').innerHTML = `
-  <span id="networkStatus" style="font-size:13px; font-weight:800; color:var(--muted); margin-right:10px;">⚪ ກຳລັງກວດສອບ...</span>
   <button class="btn btn-primary no-print" onclick="openTransactionModal()">＋ ເພີ່ມລາຍການ</button>
   <button class="btn btn-light" onclick="backupData()">💾 Backup</button>
  `;
- 
- // 2. ກະຕຸ້ນສະຖານະອອນລາຍຄືນໃຫ້ສະແດງຜົນທັນທີ
- firebase.database().ref('.info/connected').once('value', snap => {
-    const el = document.getElementById('networkStatus');
-    if(el) {
-      el.innerHTML = snap.val() ? '🟢 ອອນລາຍ' : '🔴 ອອບລາຍ (ມີບັນຫາເນັດ/Firebase)';
-      el.style.color = snap.val() ? '#15803d' : '#b91c1c';
-    }
- });
 
  // 3. ສ້າງໜ້າບັນທຶກລາຍການ (ເອົາ panel-head ອອກ ເພື່ອໃຫ້ລຽບງາມສະອາດຕາ ແລະ ຍັບຂຶ້ນເທິງ)
  document.getElementById('content').innerHTML=`
@@ -569,7 +535,6 @@ function renderCashbook(){
  
 // ເອົາຕົວເລືອກ ແລະ ປຸ່ມພິມ ໄປໄວ້ແຖວດຽວກັບປຸ່ມ Backup ໃນ Topbar
  document.querySelector('.topbar .actions').innerHTML = `
-  <span id="networkStatus" style="font-size:13px; font-weight:800; color:var(--muted); margin-right:10px;">⚪ ກຳລັງກວດສອບ...</span>
   <select id="cbYear" onchange="generateCashbook()" style="padding: 8px; border: 1px solid var(--border); border-radius: 8px; outline: none;">
    ${years.map(y => `<option value="${y}">ປະຈຳປີ ${y}</option>`).join('')}
   </select>
@@ -679,25 +644,14 @@ function cashbookRowsFiltered(year, month){
 function renderAccounts(){
  // 1. ຍ້າຍປຸ່ມໄປໄວ້ແຖວດຽວກັບ Topbar
  document.querySelector('.topbar .actions').innerHTML = `
-  <span id="networkStatus" style="font-size:13px; font-weight:800; color:var(--muted); margin-right:10px;">⚪ ກຳລັງກວດສອບ...</span>
   <button class="btn btn-primary no-print" onclick="openAccountModal()">＋ ເພີ່ມບັນຊີ</button>
   <button class="btn btn-light" onclick="backupData()">💾 Backup</button>
  `;
- 
- // 2. ກະຕຸ້ນສະຖານະອອນລາຍຄືນໃຫ້ສະແດງຜົນທັນທີ
- firebase.database().ref('.info/connected').once('value', snap => {
-    const el = document.getElementById('networkStatus');
-    if(el) {
-      el.innerHTML = snap.val() ? '🟢 ອອນລາຍ' : '🔴 ອອບລາຍ (ມີບັນຫາເນັດ)';
-      el.style.color = snap.val() ? '#15803d' : '#b91c1c';
-    }
- });
 
  // 3. ສ້າງຕາຕະລາງບັນຊີ (ເອົາ panel-head ອອກ ເພື່ອໃຫ້ລຽບງາມສະອາດຕາ)
  document.getElementById('content').innerHTML=`
  <div class="panel" style="margin-top:0;">
- <div class="panel-body"><div class="muted" style="margin-bottom:12px">ໂຄງນີ້ສາມາດປັບລະຫັດ ແລະ ເພີ່ມບັນຊີຕາມລະບຽບຂອງໜ່ວຍງານ.</div>
- <div class="table-wrap"><table><thead><tr><th>ລະຫັດ</th><th>ຊື່ບັນຊີ</th><th>ປະເພດ</th><th>ໝວດເງິນ</th><th>ລາຍລະອຽດ</th><th class="no-print">ຈັດການ</th></tr></thead><tbody>
+  <div class="table-wrap"><table><thead><tr><th>ລະຫັດ</th><th>ຊື່ບັນຊີ</th><th>ປະເພດ</th><th>ໝວດເງິນ</th><th>ລາຍລະອຽດ</th><th class="no-print">ຈັດການ</th></tr></thead><tbody>
  ${db.accounts.map(a=>`<tr><td><b>${esc(a.code)}</b></td><td>${esc(a.name)}</td><td>${a.type==='asset'?'ຊັບສິນ':a.type==='income'?'ລາຍຮັບ':'ລາຍຈ່າຍ'}</td><td>${esc(fundName(a.fund))}</td><td>${esc(a.note||'')}</td><td class="no-print"><button class="btn btn-light" onclick="editAccount('${a.id}')">ແກ້</button> <button class="btn btn-danger" onclick="deleteAccount('${a.id}')">ລົບ</button></td></tr>`).join('')}
  </tbody></table></div></div></div>`;
 }

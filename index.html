@@ -101,10 +101,32 @@ hr.sep{border:0;border-top:1px solid var(--border);margin:16px 0}
 @keyframes slideOutRight { from { transform: translateX(0); opacity: 1; } to { transform: translateX(120%); opacity: 0; } }
 /* ------------------------------------------------------- */
 
+/* ------------------- LOGIN UI ------------------- */
+#loginScreen { position: fixed; inset: 0; background: var(--bg); z-index: 100000; display: flex; align-items: center; justify-content: center; }
+.login-card { background: #fff; width: min(380px, 90%); padding: 32px 24px; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+.login-card h2 { text-align: center; color: var(--primary); margin: 0 0 24px; font-size: 22px; }
+.login-card input { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; margin-top: 5px; }
+
 </style>
 </head>
 <body>
-<div class="app">
+<!-- ໜ້າ Login -->
+<div id="loginScreen">
+  <div class="login-card">
+    <h2>ເຂົ້າສູ່ລະບົບຄັງເງິນ</h2>
+    <div style="margin-bottom: 16px;">
+      <label style="font-weight:700; font-size:13px">ຊື່ຜູ້ໃຊ້ (Username)</label>
+      <input id="loginUser" type="text" placeholder="ປ້ອນຊື່ຜູ້ໃຊ້">
+    </div>
+    <div style="margin-bottom: 24px;">
+      <label style="font-weight:700; font-size:13px">ລະຫັດຜ່ານ (Password)</label>
+      <input id="loginPass" type="password" placeholder="ປ້ອນລະຫັດຜ່ານ" onkeypress="if(event.key==='Enter') doLogin()">
+    </div>
+    <button class="btn btn-primary" style="width:100%; padding: 12px; font-size: 16px;" onclick="doLogin()">ເຂົ້າສູ່ລະບົບ</button>
+  </div>
+</div>
+
+<div class="app" style="display:none;"> <!-- ຊ່ອນ App ໄວ້ກ່ອນຈົນກວ່າຈະ Login -->
 <aside class="sidebar">
   <div class="brand">ຄັງເງິນສົດ<small>Cash Treasury Management</small></div>
   <div class="nav">
@@ -114,6 +136,10 @@ hr.sep{border:0;border-top:1px solid var(--border);margin:16px 0}
     <button data-page="accounts">📚 ໂຄງບັນຊີ</button>
     <button data-page="reports">📊 ລາຍງານ</button>
     <button data-page="settings">⚙️ ຕັ້ງຄ່າ</button>
+  </div>
+  <!-- ປຸ່ມອອກຈາກລະບົບ -->
+  <div style="position:absolute; bottom: 20px; left: 14px; right: 14px;">
+    <button class="btn btn-danger" style="width:100%;" onclick="doLogout()">🚪 ອອກຈາກລະບົບ</button>
   </div>
 </aside>
 
@@ -244,6 +270,45 @@ let db = loadDB(); // ໂຫຼດຈາກ Local ກ່ອນສະເໝີປ
 let currentPage = 'dashboard';
 let isFirstLoad = true;
 
+// ---------------- ລະບົບ USERS ----------------
+const USERS = {
+  'ADMIN-CASH': { pass: 'C@29962200', role: 'admin' },
+  'XBL-CASH':   { pass: 'C@160800', role: 'cashier' },
+  'XBL01':      { pass: 'C@16080100', role: 'viewer' }
+};
+let currentUser = JSON.parse(sessionStorage.getItem('cash_user')) || null;
+
+window.addEventListener('DOMContentLoaded', () => {
+  if(currentUser) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.querySelector('.app').style.display = 'flex';
+  }
+});
+
+function doLogin() {
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value;
+  if(USERS[u] && USERS[u].pass === p) {
+    currentUser = { username: u, role: USERS[u].role };
+    sessionStorage.setItem('cash_user', JSON.stringify(currentUser));
+    document.getElementById('loginScreen').style.display = 'none';
+    document.querySelector('.app').style.display = 'flex';
+    showPage('dashboard');
+  } else {
+    alert('❌ ຊື່ຜູ້ໃຊ້ ຫຼື ລະຫັດຜ່ານບໍ່ຖືກຕ້ອງ!');
+  }
+}
+
+function doLogout() {
+  sessionStorage.removeItem('cash_user');
+  currentUser = null;
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.querySelector('.app').style.display = 'none';
+}
+// ----------------------------------------------
+
 // ຕົວແປສຳລັບແບ່ງໜ້າ (Pagination)
 let txCurrentPage = 1;
 const TX_PER_PAGE = 50; // ກຳນົດໃຫ້ສະແດງໜ້າລະ 50 ລາຍການ
@@ -355,9 +420,9 @@ function showPage(page){
  }
  
 // ຣີເຊັດປຸ່ມໃນ Topbar ໃຫ້ກັບມາເປັນປົກກະຕິທຸກຄັ້ງທີ່ປ່ຽນໜ້າ
- document.querySelector('.topbar .actions').innerHTML = `
-    <button class="btn btn-light" onclick="backupData()">💾 Backup</button>
- `;
+ document.querySelector('.topbar .actions').innerHTML = (currentUser && currentUser.role === 'admin') 
+  ? `<button class="btn btn-light" onclick="backupData()">💾 Backup</button>` 
+  : ``;
  
  ({dashboard:renderDashboard,cashbook:renderCashbook,transactions:renderTransactions,accounts:renderAccounts,reports:renderReports,settings:renderSettings}[page])();
 }
@@ -398,16 +463,21 @@ function renderDashboard(){
 
 function txTable(list){
  if(!list.length)return '<div class="empty">ຍັງບໍ່ມີລາຍການ</div>';
- return `<div class="table-wrap"><table><thead><tr><th>ລ/ດ</th><th>ວັນທີ</th><th>ເລກທີ</th><th>ເນື້ອໃນ</th><th>ໝວດ</th><th>ປະເພດ</th><th>ຈຳນວນ</th><th class="no-print">ຈັດການ</th></tr></thead><tbody>
- ${list.map((t,i)=>`<tr><td class="center">${i+1}</td><td>${fmtDate(t.date)}</td><td>${esc(t.ref||'')}</td><td>${esc(t.desc)}</td><td>${esc(fundName(t.fund))}</td><td><span class="badge ${t.type}">${t.type==='receipt'?'ຮັບ':'ຈ່າຍ'}</span></td><td class="num">${money(t.amount)}</td><td class="no-print"><button class="btn btn-light" onclick="editTx('${t.id}')">ແກ້</button> <button class="btn btn-danger" onclick="deleteTx('${t.id}')">ລົບ</button></td></tr>`).join('')}
+ const canEdit = currentUser && currentUser.role === 'admin';
+ const actionTh = canEdit ? '<th class="no-print">ຈັດການ</th>' : '';
+ return `<div class="table-wrap"><table><thead><tr><th>ລ/ດ</th><th>ວັນທີ</th><th>ເລກທີ</th><th>ເນື້ອໃນ</th><th>ໝວດ</th><th>ປະເພດ</th><th>ຈຳນວນ</th>${actionTh}</tr></thead><tbody>
+ ${list.map((t,i)=>`<tr><td class="center">${i+1}</td><td>${fmtDate(t.date)}</td><td>${esc(t.ref||'')}</td><td>${esc(t.desc)}</td><td>${esc(fundName(t.fund))}</td><td><span class="badge ${t.type}">${t.type==='receipt'?'ຮັບ':'ຈ່າຍ'}</span></td><td class="num">${money(t.amount)}</td>${canEdit ? `<td class="no-print"><button class="btn btn-light" onclick="editTx('${t.id}')">ແກ້</button> <button class="btn btn-danger" onclick="deleteTx('${t.id}')">ລົບ</button></td>` : ''}</tr>`).join('')}
  </tbody></table></div>`;
 }
 
 function renderTransactions(){
+ const canAdd = currentUser && (currentUser.role === 'admin' || currentUser.role === 'cashier');
+ const isAdmin = currentUser && currentUser.role === 'admin';
+
  // 1. ຍ້າຍປຸ່ມໄປໄວ້ແຖວດຽວກັບ Topbar (ແຖບວັນທີ ແລະ Backup)
  document.querySelector('.topbar .actions').innerHTML = `
-  <button class="btn btn-primary no-print" onclick="openTransactionModal()">＋ ເພີ່ມລາຍການ</button>
-  <button class="btn btn-light" onclick="backupData()">💾 Backup</button>
+  ${canAdd ? '<button class="btn btn-primary no-print" onclick="openTransactionModal()">＋ ເພີ່ມລາຍການ</button>' : ''}
+  ${isAdmin ? '<button class="btn btn-light" onclick="backupData()">💾 Backup</button>' : ''}
  `;
 
  // 3. ສ້າງໜ້າບັນທຶກລາຍການ (ເອົາ panel-head ອອກ ເພື່ອໃຫ້ລຽບງາມສະອາດຕາ ແລະ ຍັບຂຶ້ນເທິງ)
@@ -418,7 +488,7 @@ function renderTransactions(){
  <select id="txFilterType" onchange="filterTx(true)"><option value="">ທັງໝົດ</option><option value="receipt">ຮັບ</option><option value="payment">ຈ່າຍ</option></select>
  <select id="txFilterFund" onchange="filterTx(true)"><option value="">ທຸກໝວດ</option>${db.funds.map(f=>`<option value="${f.id}">${esc(f.name)}</option>`).join('')}</select>
  <button class="btn btn-light" onclick="exportCSV()">⬇ ໂຫຼດອອກ Excel</button>
- <button class="btn btn-success" onclick="openImportModal()">📋 ວາງຂໍ້ມູນຈາກ Excel</button>
+ ${isAdmin ? '<button class="btn btn-success" onclick="openImportModal()">📋 ວາງຂໍ້ມູນຈາກ Excel</button>' : ''}
  </div><div id="txList" style="margin-top:12px; flex:1; display:flex; flex-direction:column;"></div></div></div>`;
  
  // ເອີ້ນໃຊ້ filterTx ພ້ອມຕັ້ງຄ່າໜ້າທຳອິດໃໝ່ເພື່ອສະແດງຜົນການແບ່ງໜ້າ
@@ -550,7 +620,7 @@ function renderCashbook(){
    <option value="10">ສະເພາະເດືອນ 10</option><option value="11">ສະເພາະເດືອນ 11</option><option value="12">ສະເພາະເດືອນ 12</option>
   </select>
   <button class="btn btn-primary" onclick="window.print()">🖨 ພິມເອກະສານ</button>
-  <button class="btn btn-light" onclick="backupData()">💾 Backup</button>
+  ${(currentUser && currentUser.role === 'admin') ? '<button class="btn btn-light" onclick="backupData()">💾 Backup</button>' : ''}
  `;
 
  // ເພີ່ມ full-view ເຂົ້າໄປເພື່ອໃຫ້ຕາຕະລາງຍືດເຕັມຈໍ
@@ -662,17 +732,19 @@ function cashbookRowsFiltered(year, month){
 }
 
 function renderAccounts(){
+ const isAdmin = currentUser && currentUser.role === 'admin';
  // 1. ຍ້າຍປຸ່ມໄປໄວ້ແຖວດຽວກັບ Topbar
- document.querySelector('.topbar .actions').innerHTML = `
+ document.querySelector('.topbar .actions').innerHTML = isAdmin ? `
   <button class="btn btn-primary no-print" onclick="openAccountModal()">＋ ເພີ່ມບັນຊີ</button>
   <button class="btn btn-light" onclick="backupData()">💾 Backup</button>
- `;
+ ` : ``;
 
  // 3. ສ້າງຕາຕະລາງບັນຊີ (ເອົາ panel-head ອອກ ເພື່ອໃຫ້ລຽບງາມສະອາດຕາ)
+ const actionTh = isAdmin ? '<th class="no-print">ຈັດການ</th>' : '';
  document.getElementById('content').innerHTML=`
  <div class="panel" style="margin-top:0;">
-  <div class="table-wrap"><table><thead><tr><th>ລະຫັດ</th><th>ຊື່ບັນຊີ</th><th>ປະເພດ</th><th>ໝວດເງິນ</th><th>ລາຍລະອຽດ</th><th class="no-print">ຈັດການ</th></tr></thead><tbody>
- ${db.accounts.map(a=>`<tr><td><b>${esc(a.code)}</b></td><td>${esc(a.name)}</td><td>${a.type==='asset'?'ຊັບສິນ':a.type==='income'?'ລາຍຮັບ':'ລາຍຈ່າຍ'}</td><td>${esc(fundName(a.fund))}</td><td>${esc(a.note||'')}</td><td class="no-print"><button class="btn btn-light" onclick="editAccount('${a.id}')">ແກ້</button> <button class="btn btn-danger" onclick="deleteAccount('${a.id}')">ລົບ</button></td></tr>`).join('')}
+  <div class="table-wrap"><table><thead><tr><th>ລະຫັດ</th><th>ຊື່ບັນຊີ</th><th>ປະເພດ</th><th>ໝວດເງິນ</th><th>ລາຍລະອຽດ</th>${actionTh}</tr></thead><tbody>
+ ${db.accounts.map(a=>`<tr><td><b>${esc(a.code)}</b></td><td>${esc(a.name)}</td><td>${a.type==='asset'?'ຊັບສິນ':a.type==='income'?'ລາຍຮັບ':'ລາຍຈ່າຍ'}</td><td>${esc(fundName(a.fund))}</td><td>${esc(a.note\vert{}\vert{}'')}</td>${isAdmin ? `<td class="no-print"><button class="btn btn-light" onclick="editAccount('${a.id}')">ແກ້</button> <button class="btn btn-danger" onclick="deleteAccount('${a.id}')">ລົບ</button></td>` : ''}</tr>`).join('')}
  </tbody></table></div></div></div>`;
 }
 
@@ -829,16 +901,18 @@ function exportReportCSV() {
 }
 
 function renderSettings(){
+ const isAdmin = currentUser && currentUser.role === 'admin';
+ const dis = isAdmin ? '' : 'disabled';
  document.getElementById('content').innerHTML=`
  <div class="panel"><div class="panel-head"><h2>ຕັ້ງຄ່າລະບົບ</h2></div><div class="panel-body">
  <div class="form-grid">
-  <div class="field full"><label>ຊື່ໜ່ວຍງານ</label><input id="setOrg" value="${esc(db.settings.orgName)}"></div>
-  <div class="field"><label>ໜ່ວຍເງິນ</label><input id="setCurrency" value="${esc(db.settings.currency)}"></div>
+  <div class="field full"><label>ຊື່ໜ່ວຍງານ</label><input id="setOrg" value="${esc(db.settings.orgName)}" ${dis}></div>
+  <div class="field"><label>ໜ່ວຍເງິນ</label><input id="setCurrency" value="${esc(db.settings.currency)}" ${dis}></div>
  </div><hr class="sep"><h3>ຍອດຍົກມາ</h3>
- <div class="form-grid">${db.funds.map(f=>`<div class="field"><label>${esc(f.name)}</label><input type="text" id="open_${f.id}" value="${money(db.settings.opening[f.id])}" oninput="this.value = this.value.replace(/[^0-9]/g, '').replace(/\\B(?=(\\d{3})+(?!\\d))/g, ',')"></div>`).join('')}</div>
- <div class="actions no-print" style="margin-top:14px"><button class="btn btn-primary" onclick="saveSettings()">💾 ບັນທຶກຕັ້ງຄ່າ</button></div>
+ <div class="form-grid">${db.funds.map(f=>`<div class="field"><label>${esc(f.name)}</label><input type="text" id="open_${f.id}" value="${money(db.settings.opening[f.id])}" ${dis} oninput="this.value = this.value.replace(/[^0-9]/g, '').replace(/\\B(?=(\\d{3})+(?!\\d))/g, ',')"></div>`).join('')}</div>
+ ${isAdmin ? '<div class="actions no-print" style="margin-top:14px"><button class="btn btn-primary" onclick="saveSettings()">💾 ບັນທຶກຕັ້ງຄ່າ</button></div>' : '<div class="muted" style="margin-top:14px; font-size:13px;">* ທ່ານມີສິດພຽງເບິ່ງການຕັ້ງຄ່າ (ບໍ່ສາມາດແກ້ໄຂໄດ້)</div>'}
  </div></div>
- <div class="panel"><div class="panel-head"><h2>ສຳຮອງ/ກູ້ຄືນຂໍ້ມູນ</h2></div><div class="panel-body"><div class="actions no-print"><button class="btn btn-light" onclick="backupData()">⬇ ສຳຮອງ JSON</button><label class="btn btn-light">⬆ ກູ້ຄືນ JSON<input type="file" accept=".json" onchange="restoreData(event)" hidden></label><button class="btn btn-danger" onclick="resetData()">⚠ ລ້າງຂໍ້ມູນທົດລອງ</button></div></div></div>`;
+ ${isAdmin ? `<div class="panel"><div class="panel-head"><h2>ສຳຮອງ/ກູ້ຄືນຂໍ້ມູນ</h2></div><div class="panel-body"><div class="actions no-print"><button class="btn btn-light" onclick="backupData()">⬇ ສຳຮອງ JSON</button><label class="btn btn-light">⬆ ກູ້ຄືນ JSON<input type="file" accept=".json" onchange="restoreData(event)" hidden></label><button class="btn btn-danger" onclick="resetData()">⚠ ລ້າງຂໍ້ມູນທົດລອງ</button></div></div></div>` : ''}`;
 }
 
 function fillFunds(selectId,allowBlank=false){

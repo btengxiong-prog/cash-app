@@ -120,7 +120,7 @@ hr.sep{border:0;border-top:1px solid var(--border);margin:16px 0}
       <label style="font-weight:700; font-size:13px">ລະຫັດຜ່ານ (Password)</label>
       <input id="loginPass" type="password" placeholder="ປ້ອນລະຫັດຜ່ານ" onkeypress="if(event.key==='Enter') doLogin()">
     </div>
-    <button class="btn btn-primary" style="width:100%; padding: 12px; font-size: 16px;" onclick="doLogin()">ເຂົ້າສູ່ລະບົບ</button>
+    <button type="button" class="btn btn-primary" style="width:100%; padding: 12px; font-size: 16px;" onclick="doLogin()">ເຂົ້າສູ່ລະບົບ</button>
   </div>
 </div>
 
@@ -210,7 +210,7 @@ hr.sep{border:0;border-top:1px solid var(--border);margin:16px 0}
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
 <script>
-// ================= CUSTOM POPUP SYSTEM =================
+// ================= 1. CUSTOM POPUP SYSTEM & ERROR HANDLING =================
 document.body.insertAdjacentHTML('beforeend', `
 <div class="toast-container" id="toastBox"></div>
 <div class="confirm-overlay" id="confirmUI">
@@ -226,6 +226,7 @@ document.body.insertAdjacentHTML('beforeend', `
 
 window.alert = function(msg) {
   const box = document.getElementById('toastBox');
+  if(!box) return;
   const toast = document.createElement('div');
   let isError = msg.includes('ບໍ່') || msg.includes('ຜິດ') || msg.includes('ກະລຸນາ') || msg.includes('ລົ້ມເຫຼວ') || msg.includes('❌');
   toast.className = 'toast' + (isError ? ' error' : '');
@@ -245,21 +246,56 @@ window.myConfirm = function(msg, onYes) {
   btnOk.onclick = () => { cleanUp(); onYes(); };
   btnCancel.onclick = () => { cleanUp(); };
 };
-// =======================================================
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAkue9Xc8Qt-Cpi0_OX6RaHWxhgc9fP7qg",
-  authDomain: "cash-treasury-lao.firebaseapp.com",
-  projectId: "cash-treasury-lao",
-  storageBucket: "cash-treasury-lao.firebasestorage.app",
-  messagingSenderId: "916531130146",
-  appId: "1:916531130146:web:71ad671ccc167972f07f7b",
-  measurementId: "G-CNQX8DF3LZ",
-  databaseURL: "https://cash-treasury-lao-default-rtdb.firebaseio.com"
+// ================= 2. ລະບົບ USERS (Fail-safe) =================
+const USERS = {
+  'ADMIN-CASH': { pass: 'C@29962200', role: 'admin' },
+  'XBL-CASH':   { pass: 'C@160800', role: 'cashier' },
+  'XBL01':      { pass: 'C@16080100', role: 'viewer' }
 };
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
 
+let currentUser = null;
+try { 
+  currentUser = JSON.parse(sessionStorage.getItem('cash_user')); 
+} catch(e) {}
+
+window.addEventListener('DOMContentLoaded', () => {
+  if(currentUser) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.querySelector('.app').style.display = 'flex';
+  }
+});
+
+function doLogin() {
+  try {
+    const u = document.getElementById('loginUser').value.trim();
+    const p = document.getElementById('loginPass').value;
+    if(USERS[u] && USERS[u].pass === p) {
+      currentUser = { username: u, role: USERS[u].role };
+      sessionStorage.setItem('cash_user', JSON.stringify(currentUser));
+      document.getElementById('loginScreen').style.display = 'none';
+      document.querySelector('.app').style.display = 'flex';
+      showPage('dashboard');
+    } else {
+      alert('❌ ຊື່ຜູ້ໃຊ້ ຫຼື ລະຫັດຜ່ານບໍ່ຖືກຕ້ອງ!');
+    }
+  } catch(error) {
+    console.error(error);
+    alert('❌ ເກີດຂໍ້ຜິດພາດໃນການເຂົ້າສູ່ລະບົບ');
+  }
+}
+
+function doLogout() {
+  sessionStorage.removeItem('cash_user');
+  currentUser = null;
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.querySelector('.app').style.display = 'none';
+}
+
+
+// ================= 3. ຖານຂໍ້ມູນ ແລະ ໜ້າທີ່ຕ່າງໆ =================
 const KEY='cash_treasury_v1';
 const defaultFunds=[
  {id:'budget',name:'ງົບປະມານ'},
@@ -301,49 +337,54 @@ let currentPage = 'dashboard';
 let isFirstLoad = true;
 let txCurrentPage = 1;
 const TX_PER_PAGE = 50; 
+let database = null;
 
-// ---------------- ລະບົບ USERS ----------------
-const USERS = {
-  'ADMIN-CASH': { pass: 'C@29962200', role: 'admin' },
-  'XBL-CASH':   { pass: 'C@160800', role: 'cashier' },
-  'XBL01':      { pass: 'C@16080100', role: 'viewer' }
-};
-let currentUser = JSON.parse(sessionStorage.getItem('cash_user')) || null;
-
-window.addEventListener('DOMContentLoaded', () => {
-  if(currentUser) {
-    document.getElementById('loginScreen').style.display = 'none';
-    document.querySelector('.app').style.display = 'flex';
+// ການຕັ້ງຄ່າ Firebase (ຫໍ່ດ້ວຍ try...catch ເພື່ອປ້ອງກັນເວັບລົ້ມຖ້າບໍ່ມີອິນເຕີເນັດ)
+try {
+  const firebaseConfig = {
+    apiKey: "AIzaSyAkue9Xc8Qt-Cpi0_OX6RaHWxhgc9fP7qg",
+    authDomain: "cash-treasury-lao.firebaseapp.com",
+    projectId: "cash-treasury-lao",
+    storageBucket: "cash-treasury-lao.firebasestorage.app",
+    messagingSenderId: "916531130146",
+    appId: "1:916531130146:web:71ad671ccc167972f07f7b",
+    measurementId: "G-CNQX8DF3LZ",
+    databaseURL: "https://cash-treasury-lao-default-rtdb.firebaseio.com"
+  };
+  
+  if(typeof firebase !== 'undefined') {
+    firebase.initializeApp(firebaseConfig);
+    database = firebase.database();
+    
+    database.ref('treasury_data').on('value', (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const toArray = (obj) => { if (!obj) return []; return Array.isArray(obj) ? obj : Object.values(obj); };
+        db.settings = data.settings || {orgName:'ຫ້ອງການ/ໜ່ວຍງານ',currency:'ກີບ',opening:{budget:0,academic:0,support:0,fee:0}};
+        db.transactions = toArray(data.transactions);
+        let tempFunds = toArray(data.funds); db.funds = tempFunds.length > 0 ? tempFunds : defaultFunds;
+        let tempAccs = toArray(data.accounts); db.accounts = tempAccs.length > 0 ? tempAccs : defaultAccounts;
+        db.audit = toArray(data.audit);
+        localStorage.setItem(KEY, JSON.stringify(db));
+        try {
+          if (currentPage === 'transactions' && document.getElementById('txList')) filterTx(false);
+          else if (currentPage === 'cashbook' && document.getElementById('cashbookContainer')) generateCashbook();
+          else if (currentPage === 'reports' && document.getElementById('reportContainer')) generateReport();
+          else if (currentPage === 'dashboard' && document.getElementById('content')) renderDashboard();
+          else if (currentPage === 'accounts' && document.getElementById('content')) renderAccounts();
+        } catch (err) { console.error(err); }
+      }
+    }, (error) => { console.warn("Firebase Error: " + error.message); });
   }
-});
-
-function doLogin() {
-  const u = document.getElementById('loginUser').value.trim();
-  const p = document.getElementById('loginPass').value;
-  if(USERS[u] && USERS[u].pass === p) {
-    currentUser = { username: u, role: USERS[u].role };
-    sessionStorage.setItem('cash_user', JSON.stringify(currentUser));
-    document.getElementById('loginScreen').style.display = 'none';
-    document.querySelector('.app').style.display = 'flex';
-    showPage('dashboard');
-  } else {
-    alert('❌ ຊື່ຜູ້ໃຊ້ ຫຼື ລະຫັດຜ່ານບໍ່ຖືກຕ້ອງ!');
-  }
+} catch (e) {
+  console.warn("ລະບົບອອນລາຍຖືກຕັດຂາດ ໃຊ້ງານແບບອອບລາຍ: ", e);
 }
-
-function doLogout() {
-  sessionStorage.removeItem('cash_user');
-  currentUser = null;
-  document.getElementById('loginUser').value = '';
-  document.getElementById('loginPass').value = '';
-  document.getElementById('loginScreen').style.display = 'flex';
-  document.querySelector('.app').style.display = 'none';
-}
-// ----------------------------------------------
 
 function saveDB() {
   localStorage.setItem(KEY, JSON.stringify(db));
-  database.ref('treasury_data').set(db).catch(err => alert("❌ ການບັນທຶກອອນລາຍລົ້ມເຫຼວ: " + err.message));
+  if(database) {
+    database.ref('treasury_data').set(db).catch(err => alert("❌ ການບັນທຶກອອນລາຍລົ້ມເຫຼວ: " + err.message));
+  }
 }
 
 window.forceSync = function() {
@@ -351,26 +392,6 @@ window.forceSync = function() {
     saveDB(); alert('ອັບໂຫຼດຂໍ້ມູນຂຶ້ນ Cloud ສຳເລັດແລ້ວ!');
   });
 };
-
-database.ref('treasury_data').on('value', (snapshot) => {
-  const data = snapshot.val();
-  if (data) {
-    const toArray = (obj) => { if (!obj) return []; return Array.isArray(obj) ? obj : Object.values(obj); };
-    db.settings = data.settings || {orgName:'ຫ້ອງການ/ໜ່ວຍງານ',currency:'ກີບ',opening:{budget:0,academic:0,support:0,fee:0}};
-    db.transactions = toArray(data.transactions);
-    let tempFunds = toArray(data.funds); db.funds = tempFunds.length > 0 ? tempFunds : defaultFunds;
-    let tempAccs = toArray(data.accounts); db.accounts = tempAccs.length > 0 ? tempAccs : defaultAccounts;
-    db.audit = toArray(data.audit);
-    localStorage.setItem(KEY, JSON.stringify(db));
-    try {
-      if (currentPage === 'transactions' && document.getElementById('txList')) filterTx(false);
-      else if (currentPage === 'cashbook' && document.getElementById('cashbookContainer')) generateCashbook();
-      else if (currentPage === 'reports' && document.getElementById('reportContainer')) generateReport();
-      else if (currentPage === 'dashboard' && document.getElementById('content')) renderDashboard();
-      else if (currentPage === 'accounts' && document.getElementById('content')) renderAccounts();
-    } catch (err) { console.error(err); }
-  }
-}, (error) => { alert("❌ ເກີດຂໍ້ຜິດພາດ: " + error.message); });
 
 function money(n){return Number(n||0).toLocaleString('en-US')}
 function updateOpeningText(text) { db.settings.openingText = text.trim() || 'ຍອດຍົກມາ'; saveDB(); }

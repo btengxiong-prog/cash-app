@@ -32,7 +32,22 @@ button{cursor:pointer}
 .btn-success{background:#dcfce7;color:#166534;border:1px solid #bbf7d0}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
 .grid{display:grid;gap:14px}
-.cards{grid-template-columns:repeat(5,minmax(0,1fr))}
+.cards{grid-template-columns:repeat(6,minmax(0,1fr))}
+
+/* --- ພິມໃບບິນ & ຢືມທົດລອງ --- */
+@media print {
+  body.printing-voucher #mainApp, body.printing-voucher .sidebar, body.printing-voucher #toastBox, body.printing-voucher .modal { display: none !important; }
+  #printVoucherArea { display: block !important; }
+}
+#printVoucherArea { display: none; padding: 20px; font-family: "Phetsarath OT", sans-serif; }
+.voucher-header { text-align: center; margin-bottom: 20px; }
+.voucher-title { font-size: 24px; font-weight: bold; margin: 10px 0; }
+.voucher-row { margin-bottom: 12px; font-size: 16px; display: flex; align-items: baseline; }
+.voucher-label { font-weight: bold; width: 150px; flex-shrink: 0; }
+.voucher-value { flex-grow: 1; border-bottom: 1px dotted #000; min-height: 20px; }
+.voucher-signs { display: flex; justify-content: space-between; margin-top: 60px; text-align: center; }
+.voucher-signs div { width: 30%; }
+.badge.advance { background: #fef08a; color: #854d0e; }
 .card{position:relative;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:var(--shadow)}
 .math-op::after { position: absolute; left: calc(100% + 7px); top: 50%; transform: translate(-50%, -50%); font-size: 28px; font-weight: 400; color: #334155; z-index: 10; }
 .math-plus::after { content: "+"; }
@@ -178,7 +193,19 @@ hr.sep{border:0;border-top:1px solid var(--border);margin:16px 0}
       <div class="field full"><label>ເນື້ອໃນລາຍການ *</label><input id="txDesc" required placeholder="ລາຍລະອຽດການຮັບ ຫຼື ຈ່າຍ"></div>
       <div class="field"><label>ບັນຊີ/ລະຫັດ</label><select id="txAccount"></select></div>
       <div class="field"><label>ຈຳນວນເງິນ (ກີບ) *</label><input id="txAmount" type="number" min="0" step="1" required></div>
-      <div class="field full"><label>ໝາຍເຫດ</label><textarea id="txNote" placeholder="ຫຼັກຖານ, ຜູ້ຮັບ/ຜູ້ຈ່າຍ, ໝາຍເຫດອື່ນໆ"></textarea></div>
+      <div class="field" id="txStatusWrapper" style="display:none;">
+        <label>ສະຖານະຈ່າຍເງິນ</label>
+        <select id="txStatus">
+          <option value="completed">ຈ່າຍຂາດ (ປົກກະຕິ)</option>
+          <option value="advance">ຢືມທົດລອງ (ລໍຖ້າສະສາງ)</option>
+        </select>
+      </div>
+      <div class="field full"><label>ໝາຍເຫດ (ຊື່ຜູ້ຮັບ/ຈ່າຍ)</label><textarea id="txNote" placeholder="ປ້ອນຊື່ຜູ້ຮັບ ຫຼື ຜູ້ຈ່າຍ ເພື່ອໃຫ້ອອກໃນໃບບິນ..."></textarea></div>
+      <div class="field full">
+        <label>ແນບໄຟລ໌ຫຼັກຖານ (ຮູບພາບ/PDF)</label>
+        <input type="file" id="txFile" accept="image/*,application/pdf">
+        <div id="txFilePreview" style="margin-top:8px; font-size:13px;"></div>
+      </div>
     </div>
    </div>
    <div class="modal-foot"><button type="button" class="btn btn-light" onclick="closeModal()">ຍົກເລີກ</button><button class="btn btn-primary">💾 ບັນທຶກ</button></div>
@@ -244,9 +271,13 @@ hr.sep{border:0;border-top:1px solid var(--border);margin:16px 0}
  </div>
 </div>
 
+<!-- ພື້ນທີ່ສຳລັບການພິມໃບບິນ (ຈະຖືກຊ່ອນໄວ້ ແລະ ສະແດງສະເພາະຕອນກົດພິມ) -->
+<div id="printVoucherArea"></div>
+
 <!-- ນຳເຂົ້າ Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
 
 <script>
 const firebaseConfig = {
@@ -262,6 +293,7 @@ const firebaseConfig = {
 // ເລີ່ມຕົ້ນເຊື່ອມຕໍ່ Firebase
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
+const storage = firebase.storage(); // ເພີ່ມແຖວນີ້ເພື່ອໃຫ້ລະບົບຮູ້ຈັກການອັບໂຫຼດໄຟລ໌
 
 const KEY='cash_treasury_v1';
 
@@ -476,14 +508,18 @@ function showPage(page){
 }
 
 function totals(){
- let out={receipt:0,payment:0,balance:0,opening:0};
+ let out={receipt:0,payment:0,balance:0,opening:0,advance:0};
  // ບວກຍອດຍົກມາທັງໝົດກ່ອນ
  db.funds.forEach(f => out.opening += num(db.settings.opening[f.id]));
- db.transactions.forEach(t=>out[t.type]+=num(t.amount));
+ db.transactions.forEach(t=>{
+   out[t.type]+=num(t.amount);
+   if(t.type==='payment' && t.status==='advance') out.advance+=num(t.amount);
+ });
  // ຍອດເຫຼືອສຸດທ້າຍ = ຍອດຍົກມາ + ຮັບ - ຈ່າຍ
  out.balance = out.opening + out.receipt - out.payment;
  return out;
 }
+
 function fundTotals(){
  const out={}; db.funds.forEach(f=>out[f.id]={receipt:0,payment:0,balance:num(db.settings.opening[f.id])});
  db.transactions.forEach(t=>{if(!out[t.fund])out[t.fund]={receipt:0,payment:0,balance:0}; out[t.fund][t.type]+=num(t.amount);out[t.fund].balance+=t.type==='receipt'?num(t.amount):-num(t.amount)});
@@ -508,6 +544,7 @@ function renderDashboard(){
   <div class="card math-op math-minus receipt"><div class="label">ຮັບເງິນທັງໝົດ</div><div class="value">${money(t.receipt)}</div></div>
   <div class="card math-op math-equal payment"><div class="label">ຈ່າຍເງິນທັງໝົດ</div><div class="value">${money(t.payment)}</div></div>
   <div class="card balance"><div class="label">ຍອດເຫຼືອສຸດທ້າຍ</div><div class="value">${money(t.balance)}</div></div>
+  <div class="card" style="border-top:3px solid var(--warning);"><div class="label">ຢືມທົດລອງ (ລໍຖ້າ)</div><div class="value" style="color:var(--warning)">${money(t.advance)}</div></div>
   <div class="card"><div class="label">ຈຳນວນລາຍການ</div><div class="value">${db.transactions.length.toLocaleString()}</div></div>
  </div>
  <div class="panel"><div class="panel-head"><h2>ຍອດແຍກຕາມໝວດເງິນ</h2><div class="actions no-print"><button class="btn btn-light" onclick="showPage('reports')">ເບິ່ງລາຍງານ</button></div></div>
@@ -534,16 +571,26 @@ function txTable(list){
  if(!list.length)return '<div class="empty">ຍັງບໍ່ມີລາຍການ</div>';
  
  let thead = `<tr><th>ລ/ດ</th><th>ວັນທີ</th><th>ເລກທີ</th><th>ເນື້ອໃນ</th><th>ໝວດ</th><th>ປະເພດ</th><th>ຈຳນວນ</th>`;
- if (currentUser.role === 'admin') thead += `<th class="no-print">ຈັດການ</th>`;
- thead += `</tr>`;
+ thead += `<th class="no-print">ຈັດການ</th></tr>`;
 
  let tbody = list.map((t,i) => {
-   let row = `<tr><td class="center">${i+1}</td><td>${fmtDate(t.date)}</td><td>${esc(t.ref||'')}</td><td>${esc(t.desc)}</td><td>${esc(fundName(t.fund))}</td><td><span class="badge ${t.type}">${t.type==='receipt'?'ຮັບ':'ຈ່າຍ'}</span></td><td class="num">${money(t.amount)}</td>`;
-   if (currentUser.role === 'admin') {
-     row += `<td class="no-print"><button class="btn btn-light" onclick="editTx('${t.id}')">ແກ້</button> <button class="btn btn-danger" onclick="deleteTx('${t.id}')">ລົບ</button></td>`;
-   }
-   row += `</tr>`;
-   return row;
+  let typeBadge = t.type==='receipt' ? '<span class="badge receipt">ຮັບ</span>' : '<span class="badge payment">ຈ່າຍ</span>';
+  if(t.type==='payment' && t.status==='advance') typeBadge = '<span class="badge advance">ຢືມທົດລອງ</span>';
+  
+  let fileLink = t.fileUrl ? `<a href="${t.fileUrl}" target="_blank" title="ເບິ່ງຫຼັກຖານ" style="text-decoration:none; margin-left:6px;">📎</a>` : '';
+  
+  let row = `<tr><td class="center">${i+1}</td><td>${fmtDate(t.date)}</td><td>${esc(t.ref||'')}</td><td>${esc(t.desc)} ${fileLink}</td><td>${esc(fundName(t.fund))}</td><td>${typeBadge}</td><td class="num">${money(t.amount)}</td>`;
+  
+  let actionBtns = `<button class="btn btn-light" onclick="printVoucher('${t.id}')" title="ພິມໃບບິນ">🖨</button> `;
+  if(t.type==='payment' && t.status==='advance' && currentUser.role !== 'viewer') {
+     actionBtns += `<button class="btn btn-success" onclick="clearAdvance('${t.id}')" title="ສະສາງເງິນຢືມ">✓ ສະສາງ</button> `;
+  }
+  if (currentUser.role === 'admin') {
+    actionBtns += `<button class="btn btn-light" onclick="editTx('${t.id}')">ແກ້</button> <button class="btn btn-danger" onclick="deleteTx('${t.id}')">ລົບ</button>`;
+  }
+  
+  row += `<td class="no-print" style="white-space:nowrap;">${actionBtns}</td></tr>`;
+  return row;
  }).join('');
 
  return `<div class="table-wrap"><table><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>`;
@@ -1041,17 +1088,114 @@ function fillAccounts(){
 function openTransactionModal(id=null){
  fillFunds('txFund');fillAccounts();document.getElementById('txForm').reset();
  document.getElementById('txId').value=id||'';document.getElementById('txDate').value=today();document.getElementById('txModalTitle').textContent=id?'ແກ້ໄຂລາຍການ':'ບັນທຶກຮັບ–ຈ່າຍ';
- if(id){const t=db.transactions.find(x=>x.id===id);if(t){['type','date','ref','fund','desc','account','amount','note'].forEach(k=>document.getElementById('tx'+k[0].toUpperCase()+k.slice(1)).value=t[k]??'')}} 
+ document.getElementById('txFilePreview').innerHTML = '';
+ 
+ const typeEl = document.getElementById('txType');
+ typeEl.onchange = () => { document.getElementById('txStatusWrapper').style.display = typeEl.value === 'payment' ? 'block' : 'none'; };
+ 
+ if(id){
+   const t=db.transactions.find(x=>x.id===id);
+   if(t){
+     ['type','date','ref','fund','desc','account','amount','note','status'].forEach(k=>{
+       if(document.getElementById('tx'+k[0].toUpperCase()+k.slice(1))) document.getElementById('tx'+k[0].toUpperCase()+k.slice(1)).value=t[k]??'';
+     });
+     if(t.fileUrl) document.getElementById('txFilePreview').innerHTML = `ໄຟລ໌ເດີມ: <a href="${t.fileUrl}" target="_blank">📄 ${t.fileName || 'ເບິ່ງຫຼັກຖານ'}</a>`;
+   }
+ }
+ if(!id) document.getElementById('txStatus').value = 'completed';
+ typeEl.dispatchEvent(new Event('change'));
  document.getElementById('txModal').classList.add('open');
 }
 function closeModal(){document.getElementById('txModal').classList.remove('open')}
+
 document.getElementById('txForm').addEventListener('submit',e=>{
- e.preventDefault();const id=document.getElementById('txId').value;
- const t={id:id||crypto.randomUUID(),type:document.getElementById('txType').value,date:document.getElementById('txDate').value,ref:document.getElementById('txRef').value.trim(),fund:document.getElementById('txFund').value,desc:document.getElementById('txDesc').value.trim(),account:document.getElementById('txAccount').value,amount:num(document.getElementById('txAmount').value),note:document.getElementById('txNote').value.trim(),created:id?(db.transactions.find(x=>x.id===id)?.created||Date.now()):Date.now()};
- if(!t.amount||!t.desc){alert('ກະລຸນາປ້ອນເນື້ອໃນ ແລະ ຈຳນວນເງິນ');return}
- if(id){const i=db.transactions.findIndex(x=>x.id===id);db.transactions[i]=t;log('EDIT',t.desc)}else{db.transactions.push(t);log('ADD',t.desc)}
- saveDB();closeModal();showPage(currentPage);
+ e.preventDefault();
+ const id=document.getElementById('txId').value;
+ const oldT = id ? db.transactions.find(x=>x.id===id) : null;
+ 
+ const t = {
+   id: id||crypto.randomUUID(),
+   type: document.getElementById('txType').value,
+   date: document.getElementById('txDate').value,
+   ref: document.getElementById('txRef').value.trim(),
+   fund: document.getElementById('txFund').value,
+   desc: document.getElementById('txDesc').value.trim(),
+   account: document.getElementById('txAccount').value,
+   amount: num(document.getElementById('txAmount').value),
+   note: document.getElementById('txNote').value.trim(),
+   status: document.getElementById('txType').value === 'payment' ? document.getElementById('txStatus').value : 'completed',
+   created: oldT ? oldT.created : Date.now(),
+   fileUrl: oldT ? oldT.fileUrl : null,
+   fileName: oldT ? oldT.fileName : null
+ };
+ 
+ if(!t.amount||!t.desc){alert('ກະລຸນາປ້ອນເນື້ອໃນ ແລະ ຈຳນວນເງິນ');return;}
+ 
+ const btn = e.target.querySelector('.btn-primary');
+ const fileInput = document.getElementById('txFile');
+ const file = fileInput.files[0];
+
+ const proceedSave = () => {
+   if(id){db.transactions[db.transactions.findIndex(x=>x.id===id)]=t; log('EDIT',t.desc);}else{db.transactions.push(t); log('ADD',t.desc);}
+   saveDB(); closeModal(); showPage(currentPage);
+   if(btn) btn.innerHTML = '💾 ບັນທຶກ';
+ };
+
+ if (file) {
+   if(btn) btn.innerHTML = '⏳ ກຳລັງອັບໂຫຼດ...';
+   const ref = storage.ref('receipts/' + Date.now() + '_' + file.name);
+   ref.put(file).then(snap => snap.ref.getDownloadURL()).then(url => {
+     t.fileUrl = url; t.fileName = file.name;
+     proceedSave();
+   }).catch(err => {
+     alert('ເກີດຂໍ້ຜິດພາດອັບໂຫຼດ: ' + err.message + '\n(ກວດເບິ່ງ Firebase Storage Rules ວ່າຕັ້ງເປັນ Public ຫຼື ຍັງ)');
+     if(btn) btn.innerHTML = '💾 ບັນທຶກ';
+   });
+ } else {
+   proceedSave();
+ }
 });
+
+// ຟັງຊັນສະສາງເງິນຢືມ
+function clearAdvance(id) {
+  myConfirm('ຢືນຢັນການສະສາງເງິນຢືມລາຍການນີ້\nໃຫ້ກາຍເປັນລາຍຈ່າຍປົກກະຕິແລ້ວບໍ່?', () => {
+    const t = db.transactions.find(x => x.id === id);
+    if(t) { t.status = 'completed'; saveDB(); showPage(currentPage); }
+  });
+}
+
+// ຟັງຊັນພິມໃບບິນ
+function printVoucher(id) {
+  const t = db.transactions.find(x => x.id === id);
+  if(!t) return;
+  const vType = t.type === 'receipt' ? 'ໃບຮັບເງິນ' : (t.status === 'advance' ? 'ໃບຈ່າຍເງິນ (ຢືມທົດລອງ)' : 'ໃບຈ່າຍເງິນ');
+  const vTitleEng = t.type === 'receipt' ? 'RECEIPT VOUCHER' : 'PAYMENT VOUCHER';
+  const person = t.note ? t.note.split('\n')[0] : '.............................................................';
+  
+  document.getElementById('printVoucherArea').innerHTML = `
+    <div class="voucher-header">
+      <div style="font-size:18px;">${db.settings.orgName || 'ຫ້ອງການ/ໜ່ວຍງານ'}</div>
+      <div class="voucher-title">${vType}</div>
+      <div style="font-size:14px;">${vTitleEng}</div>
+    </div>
+    <div style="text-align:right; margin-bottom: 20px;">
+      ວັນທີ: ${fmtDate(t.date)}<br>
+      ເລກທີ: ${t.ref || '.......................'}
+    </div>
+    <div class="voucher-row"><div class="voucher-label">${t.type === 'receipt' ? 'ໄດ້ຮັບເງິນຈາກ:' : 'ຈ່າຍເງິນໃຫ້:'}</div><div class="voucher-value">${person}</div></div>
+    <div class="voucher-row"><div class="voucher-label">ເປັນຈຳນວນເງິນ:</div><div class="voucher-value" style="font-weight:bold;">${money(t.amount)} ກີບ</div></div>
+    <div class="voucher-row"><div class="voucher-label">ຈຸດປະສົງ:</div><div class="voucher-value">${t.desc}</div></div>
+    <div class="voucher-row"><div class="voucher-label">ແຫຼ່ງທຶນ/ໝວດເງິນ:</div><div class="voucher-value">${fundName(t.fund)}</div></div>
+    <div class="voucher-signs">
+      <div><b>ຫົວໜ້າໜ່ວຍງານ</b><br><br><br><br>( ....................................... )</div>
+      <div><b>ຜູ້ອະນຸມັດ/ນາຍຄັງ</b><br><br><br><br>( ....................................... )</div>
+      <div><b>ຜູ້${t.type === 'receipt' ? 'ມອບ' : 'ຮັບ'}ເງິນ</b><br><br><br><br>( ....................................... )</div>
+    </div>`;
+  
+  document.body.classList.add('printing-voucher');
+  window.print();
+  document.body.classList.remove('printing-voucher');
+}
 function editTx(id){openTransactionModal(id)}
 function deleteTx(id){
   const t = db.transactions.find(x => x.id === id); 

@@ -32,8 +32,13 @@ button{cursor:pointer}
 .btn-success{background:#dcfce7;color:#166534;border:1px solid #bbf7d0}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
 .grid{display:grid;gap:14px}
-.cards{grid-template-columns:repeat(4,minmax(0,1fr))}
-.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:var(--shadow)}
+.cards{grid-template-columns:repeat(5,minmax(0,1fr))}
+.card{position:relative;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:var(--shadow)}
+.math-op::after { position: absolute; left: calc(100% + 7px); top: 50%; transform: translate(-50%, -50%); font-size: 28px; font-weight: 400; color: #334155; z-index: 10; }
+.math-plus::after { content: "+"; }
+.math-minus::after { content: "-"; }
+.math-equal::after { content: "="; }
+@media(max-width:1000px) { .math-op::after { display: none; } }
 .card .label{font-size:13px;color:var(--muted)}.card .value{font-size:25px;font-weight:800;margin-top:6px}
 .card.receipt .value{color:var(--success)}.card.payment .value{color:var(--danger)}.card.balance .value{color:var(--primary)}
 .panel{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);margin-top:16px;overflow:hidden}
@@ -471,9 +476,12 @@ function showPage(page){
 }
 
 function totals(){
- let out={receipt:0,payment:0,balance:0};
+ let out={receipt:0,payment:0,balance:0,opening:0};
+ // ບວກຍອດຍົກມາທັງໝົດກ່ອນ
+ db.funds.forEach(f => out.opening += num(db.settings.opening[f.id]));
  db.transactions.forEach(t=>out[t.type]+=num(t.amount));
- out.balance=out.receipt-out.payment;
+ // ຍອດເຫຼືອສຸດທ້າຍ = ຍອດຍົກມາ + ຮັບ - ຈ່າຍ
+ out.balance = out.opening + out.receipt - out.payment;
  return out;
 }
 function fundTotals(){
@@ -484,16 +492,34 @@ function fundTotals(){
 
 function renderDashboard(){
  const t=totals(), ft=fundTotals();
+ 
+ // ຄິດໄລ່ຜົນລວມສຳລັບຕາຕະລາງ
+ let totalOpen = 0, totalRec = 0, totalPay = 0, totalBal = 0;
+ db.funds.forEach(f => {
+   totalOpen += num(db.settings.opening[f.id]);
+   totalRec += ft[f.id].receipt;
+   totalPay += ft[f.id].payment;
+   totalBal += ft[f.id].balance;
+ });
+
  document.getElementById('content').innerHTML=`
  <div class="grid cards">
-  <div class="card receipt"><div class="label">ຮັບເງິນທັງໝົດ</div><div class="value">${money(t.receipt)}</div></div>
-  <div class="card payment"><div class="label">ຈ່າຍເງິນທັງໝົດ</div><div class="value">${money(t.payment)}</div></div>
+  <div class="card math-op math-plus"><div class="label">ຍອດຍົກມາລວມ</div><div class="value">${money(totalOpen)}</div></div>
+  <div class="card math-op math-minus receipt"><div class="label">ຮັບເງິນທັງໝົດ</div><div class="value">${money(t.receipt)}</div></div>
+  <div class="card math-op math-equal payment"><div class="label">ຈ່າຍເງິນທັງໝົດ</div><div class="value">${money(t.payment)}</div></div>
   <div class="card balance"><div class="label">ຍອດເຫຼືອສຸດທ້າຍ</div><div class="value">${money(t.balance)}</div></div>
   <div class="card"><div class="label">ຈຳນວນລາຍການ</div><div class="value">${db.transactions.length.toLocaleString()}</div></div>
  </div>
  <div class="panel"><div class="panel-head"><h2>ຍອດແຍກຕາມໝວດເງິນ</h2><div class="actions no-print"><button class="btn btn-light" onclick="showPage('reports')">ເບິ່ງລາຍງານ</button></div></div>
  <div class="panel-body"><div class="table-wrap"><table><thead><tr><th>ໝວດ</th><th>ຍອດຍົກມາ</th><th>ຮັບ</th><th>ຈ່າຍ</th><th>ຍັງເຫຼືອ</th></tr></thead><tbody>
  ${db.funds.map(f=>`<tr><td><b>${esc(f.name)}</b></td><td class="num">${money(db.settings.opening[f.id])}</td><td class="num success">${money(ft[f.id].receipt)}</td><td class="num danger">${money(ft[f.id].payment)}</td><td class="num"><b>${money(ft[f.id].balance)}</b></td></tr>`).join('')}
+ <tr style="background:#f1f5f9; font-weight:800;">
+   <td class="center">ລວມທັງໝົດ</td>
+   <td class="num">${money(totalOpen)}</td>
+   <td class="num success">${money(totalRec)}</td>
+   <td class="num danger">${money(totalPay)}</td>
+   <td class="num" style="color:var(--primary)">${money(totalBal)}</td>
+ </tr>
  </tbody></table></div></div></div>
  <div class="panel">
   <div class="panel-body" style="text-align: center; padding: 40px 20px; line-height: 1.6;">

@@ -40,7 +40,11 @@ button{cursor:pointer}
 .panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border)}
 .panel-head h2{font-size:16px;margin:0}
 .panel-body{padding:16px}
-.table-wrap{overflow:auto;max-height:calc(100vh - 290px)}
+.table-wrap{overflow:auto;max-height:calc(100vh - 190px)}
+.panel.full-view { height: calc(100vh - 85px); display: flex; flex-direction: column; }
+.panel.full-view .panel-body { flex: 1; display: flex; flex-direction: column; }
+.panel.full-view #txList { flex: 1; display: flex; flex-direction: column; }
+.panel.full-view .table-wrap { flex: 1; max-height: none; }
 table{border-collapse:separate;border-spacing:0;width:100%;min-width:980px;border-left:1px solid var(--border);border-top:1px solid var(--border)}
 thead{position:sticky;top:0;z-index:10;background:#f1f5f9;box-shadow:0 2px 4px rgba(0,0,0,0.06)}
 th,td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:8px 9px;font-size:13px}
@@ -408,14 +412,14 @@ function renderTransactions(){
 
  // 3. ສ້າງໜ້າບັນທຶກລາຍການ (ເອົາ panel-head ອອກ ເພື່ອໃຫ້ລຽບງາມສະອາດຕາ ແລະ ຍັບຂຶ້ນເທິງ)
  document.getElementById('content').innerHTML=`
- <div class="panel" style="margin-top:0;">
+ <div class="panel full-view" style="margin-top:0;">
  <div class="panel-body"><div class="searchbar no-print">
  <input id="txSearch" placeholder="ຄົ້ນຫາເນື້ອໃນ/ເລກທີ" oninput="filterTx(true)">
  <select id="txFilterType" onchange="filterTx(true)"><option value="">ທັງໝົດ</option><option value="receipt">ຮັບ</option><option value="payment">ຈ່າຍ</option></select>
  <select id="txFilterFund" onchange="filterTx(true)"><option value="">ທຸກໝວດ</option>${db.funds.map(f=>`<option value="${f.id}">${esc(f.name)}</option>`).join('')}</select>
  <button class="btn btn-light" onclick="exportCSV()">⬇ ໂຫຼດອອກ Excel</button>
  <button class="btn btn-success" onclick="openImportModal()">📋 ວາງຂໍ້ມູນຈາກ Excel</button>
- </div><div id="txList" style="margin-top:12px"></div></div></div>`;
+ </div><div id="txList" style="margin-top:12px; flex:1; display:flex; flex-direction:column;"></div></div></div>`;
  
  // ເອີ້ນໃຊ້ filterTx ພ້ອມຕັ້ງຄ່າໜ້າທຳອິດໃໝ່ເພື່ອສະແດງຜົນການແບ່ງໜ້າ
  filterTx(true);
@@ -550,7 +554,7 @@ function renderCashbook(){
  `;
 
  document.getElementById('content').innerHTML=`
- <div class="panel" id="cashbookContainer" style="margin-top:0;"></div>`;
+ <div class="panel full-view" id="cashbookContainer" style="margin-top:0;"></div>`;
  generateCashbook();
 }
 

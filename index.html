@@ -208,7 +208,7 @@ hr.sep{border:0;border-top:1px solid var(--border);margin:16px 0}
       </div>
     </div>
    </div>
-   <div class="modal-foot"><button type="button" class="btn btn-light" onclick="closeModal()">ຍົກເລີກ</button><button type="submit" class="btn btn-primary">💾 ບັນທຶກ</button></div>
+   <div class="modal-foot"><button type="button" class="btn btn-light" onclick="closeModal()">ຍົກເລີກ</button><button type="button" class="btn btn-primary" onclick="saveTransaction()">💾 ບັນທຶກ</button></div>
   </form>
  </div>
 </div>
@@ -1192,53 +1192,76 @@ function openTransactionModal(id=null){
 }
 function closeModal(){document.getElementById('txModal').classList.remove('open')}
 
-document.getElementById('txForm').addEventListener('submit',e=>{
-  e.preventDefault();
-  const id=document.getElementById('txId').value;
-  const oldT = id ? db.transactions.find(x=>x.id===id) : null;
- 
+window.saveTransaction = function() {
+  const form = document.getElementById('txForm');
+  // ບັງຄັບໃຫ້ບຣາວເຊີແຈ້ງເຕືອນ ຖ້າປ້ອນຂໍ້ມູນບໍ່ຄົບ ຫຼື ຜິດຮູບແບບ
+  if(!form.checkValidity()) {
+     form.reportValidity(); 
+     return;
+  }
+  
+  const id = document.getElementById('txId').value;
+  // ແປງ ID ໃຫ້ເປັນ String ສະເໝີ ເພື່ອປ້ອງກັນບັກການຊອກຫາຂໍ້ມູນເກົ່າ
+  const oldT = id ? db.transactions.find(x => String(x.id) === String(id)) : null;
+  
   const t = {
     id: id || ('tx_' + Date.now() + Math.random().toString(36).substring(2, 7)),
     type: document.getElementById('txType').value,
-   date: document.getElementById('txDate').value,
-   ref: document.getElementById('txRef').value.trim(),
-   fund: document.getElementById('txFund').value,
-   desc: document.getElementById('txDesc').value.trim(),
-   account: document.getElementById('txAccount').value,
-   amount: num(document.getElementById('txAmount').value),
-   note: document.getElementById('txNote').value.trim(),
-   status: document.getElementById('txType').value === 'payment' ? document.getElementById('txStatus').value : 'completed',
-   created: oldT ? oldT.created : Date.now(),
-   fileUrl: oldT ? oldT.fileUrl : null,
-   fileName: oldT ? oldT.fileName : null
- };
- 
- if(!t.amount||!t.desc){alert('ກະລຸນາປ້ອນເນື້ອໃນ ແລະ ຈຳນວນເງິນ');return;}
- 
- const btn = e.target.querySelector('.btn-primary');
- const fileInput = document.getElementById('txFile');
- const file = fileInput.files[0];
+    date: document.getElementById('txDate').value,
+    ref: document.getElementById('txRef').value.trim(),
+    fund: document.getElementById('txFund').value,
+    desc: document.getElementById('txDesc').value.trim(),
+    account: document.getElementById('txAccount').value,
+    amount: num(document.getElementById('txAmount').value),
+    note: document.getElementById('txNote').value.trim(),
+    status: document.getElementById('txType').value === 'payment' ? document.getElementById('txStatus').value : 'completed',
+    created: oldT ? oldT.created : Date.now(),
+    fileUrl: oldT ? oldT.fileUrl : null,
+    fileName: oldT ? oldT.fileName : null
+  };
+  
+  if(!t.amount || !t.desc || !t.date){
+      alert('ກະລຸນາປ້ອນ ວັນທີ, ເນື້ອໃນ ແລະ ຈຳນວນເງິນ ໃຫ້ຄົບຖ້ວນ'); 
+      return; 
+  }
+  
+  const btn = document.querySelector('#txForm .btn-primary');
+  const fileInput = document.getElementById('txFile');
+  const file = fileInput.files[0];
 
- const proceedSave = () => {
-   if(id){db.transactions[db.transactions.findIndex(x=>x.id===id)]=t; log('EDIT',t.desc);}else{db.transactions.push(t); log('ADD',t.desc);}
-   saveDB(); closeModal(); showPage(currentPage);
-   if(btn) btn.innerHTML = '💾 ບັນທຶກ';
- };
+  const proceedSave = () => {
+    if(id){
+       let idx = db.transactions.findIndex(x => String(x.id) === String(id));
+       if(idx !== -1) {
+           db.transactions[idx] = t;
+       } else {
+           db.transactions.push(t);
+       }
+       log('EDIT', t.desc);
+    } else {
+       db.transactions.push(t); 
+       log('ADD', t.desc);
+    }
+    saveDB(); 
+    closeModal(); 
+    showPage(currentPage);
+    if(btn) btn.innerHTML = '💾 ບັນທຶກ';
+  };
 
- if (file) {
-   if(btn) btn.innerHTML = '⏳ ກຳລັງອັບໂຫຼດ...';
-   const ref = storage.ref('receipts/' + Date.now() + '_' + file.name);
-   ref.put(file).then(snap => snap.ref.getDownloadURL()).then(url => {
-     t.fileUrl = url; t.fileName = file.name;
-     proceedSave();
-   }).catch(err => {
-     alert('ເກີດຂໍ້ຜິດພາດອັບໂຫຼດ: ' + err.message + '\n(ກວດເບິ່ງ Firebase Storage Rules ວ່າຕັ້ງເປັນ Public ຫຼື ຍັງ)');
-     if(btn) btn.innerHTML = '💾 ບັນທຶກ';
-   });
- } else {
-   proceedSave();
- }
-});
+  if (file) {
+    if(btn) btn.innerHTML = '⏳ ກຳລັງອັບໂຫຼດ...';
+    const ref = storage.ref('receipts/' + Date.now() + '_' + file.name);
+    ref.put(file).then(snap => snap.ref.getDownloadURL()).then(url => {
+      t.fileUrl = url; t.fileName = file.name;
+      proceedSave();
+    }).catch(err => {
+      alert('ເກີດຂໍ້ຜິດພາດອັບໂຫຼດ: ' + err.message);
+      if(btn) btn.innerHTML = '💾 ບັນທຶກ';
+    });
+  } else {
+    proceedSave();
+  }
+};
 
 // ຟັງຊັນສະສາງເງິນຢືມ
 function clearAdvance(id) {

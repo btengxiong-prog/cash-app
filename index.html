@@ -192,7 +192,7 @@ hr.sep{border:0;border-top:1px solid var(--border);margin:16px 0}
       <div class="field"><label>ໝວດເງິນ *</label><select id="txFund" required></select></div>
       <div class="field full"><label>ເນື້ອໃນລາຍການ *</label><input id="txDesc" required placeholder="ລາຍລະອຽດການຮັບ ຫຼື ຈ່າຍ"></div>
       <div class="field"><label>ບັນຊີ/ລະຫັດ</label><select id="txAccount"></select></div>
-      <div class="field"><label>ຈຳນວນເງິນ (ກີບ) *</label><input id="txAmount" type="number" min="0" step="1" required></div>
+      <div class="field"><label>ຈຳນວນເງິນ (ກີບ) *</label><input id="txAmount" type="text" inputmode="numeric" required oninput="this.value = this.value.replace(/[^0-9]/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, ',')"></div>
       <div class="field" id="txStatusWrapper" style="display:none;">
         <label>ສະຖານະຈ່າຍເງິນ</label>
         <select id="txStatus">
@@ -1096,10 +1096,12 @@ function openTransactionModal(id=null){
  if(id){
    const t=db.transactions.find(x=>x.id===id);
    if(t){
-     ['type','date','ref','fund','desc','account','amount','note','status'].forEach(k=>{
-       if(document.getElementById('tx'+k[0].toUpperCase()+k.slice(1))) document.getElementById('tx'+k[0].toUpperCase()+k.slice(1)).value=t[k]??'';
-     });
-     if(t.fileUrl) document.getElementById('txFilePreview').innerHTML = `ໄຟລ໌ເດີມ: <a href="${t.fileUrl}" target="_blank">📄 ${t.fileName || 'ເບິ່ງຫຼັກຖານ'}</a>`;
+  ['type','date','ref','fund','desc','account','amount','note','status'].forEach(k=>{
+             if(document.getElementById('tx'+k[0].toUpperCase()+k.slice(1))) document.getElementById('tx'+k[0].toUpperCase()+k.slice(1)).value=t[k]??'';
+           });
+           // ເພີ່ມການຈັດຮູບແບບຕົວເລກໃຫ້ມີຈຸດຈຸລະພາກຕອນກົດແກ້ໄຂ
+           if(t.amount) document.getElementById('txAmount').value = money(t.amount);
+           if(t.fileUrl) document.getElementById('txFilePreview').innerHTML = `ໄຟລ໌ເດີມ: <a href="${t.fileUrl}" target="_blank">📄 ${t.fileName || 'ເບິ່ງຫຼັກຖານ'}</a>`;
    }
  }
  if(!id) document.getElementById('txStatus').value = 'completed';

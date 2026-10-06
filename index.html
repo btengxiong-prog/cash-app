@@ -1194,15 +1194,15 @@ function closeModal(){document.getElementById('txModal').classList.remove('open'
 
 window.saveTransaction = function() {
   const form = document.getElementById('txForm');
-  // ບັງຄັບໃຫ້ບຣາວເຊີແຈ້ງເຕືອນ ຖ້າປ້ອນຂໍ້ມູນບໍ່ຄົບ ຫຼື ຜິດຮູບແບບ
+  // ບັງຄັບໃຫ້ບຣາວເຊີແຈ້ງເຕືອນ ຖ້າຊ່ອງທີ່ required ບໍ່ໄດ້ປ້ອນ
   if(!form.checkValidity()) {
      form.reportValidity(); 
      return;
   }
   
   const id = document.getElementById('txId').value;
-  // ແປງ ID ໃຫ້ເປັນ String ສະເໝີ ເພື່ອປ້ອງກັນບັກການຊອກຫາຂໍ້ມູນເກົ່າ
-  const oldT = id ? db.transactions.find(x => String(x.id) === String(id)) : null;
+  // ໃຊ້ການປຽບທຽບທີ່ປອດໄພຂຶ້ນ ປ້ອງກັນກໍລະນີ x.id ເປັນ undefined
+  const oldT = id ? db.transactions.find(x => x && x.id && String(x.id).trim() === String(id).trim()) : null;
   
   const t = {
     id: id || ('tx_' + Date.now() + Math.random().toString(36).substring(2, 7)),
@@ -1220,6 +1220,7 @@ window.saveTransaction = function() {
     fileName: oldT ? oldT.fileName : null
   };
   
+  // ກວດສອບຄວາມຖືກຕ້ອງຂັ້ນສຸດທ້າຍກ່ອນບັນທຶກ
   if(!t.amount || !t.desc || !t.date){
       alert('ກະລຸນາປ້ອນ ວັນທີ, ເນື້ອໃນ ແລະ ຈຳນວນເງິນ ໃຫ້ຄົບຖ້ວນ'); 
       return; 
@@ -1231,12 +1232,10 @@ window.saveTransaction = function() {
 
   const proceedSave = () => {
     if(id){
-       // ປ່ຽນມາໃຊ້ການປຽບທຽບ String ທັງສອງເບື້ອງຢ່າງເຂັ້ມງວດ
-       let idx = db.transactions.findIndex(x => String(x.id).trim() === String(id).trim());
+       let idx = db.transactions.findIndex(x => x && x.id && String(x.id).trim() === String(id).trim());
        if(idx !== -1) {
-           // ຮັກສາຄ່າ created ແລະ ໄຟລ໌ເກົ່າໄວ້
-           t.created = db.transactions[idx].created;
-           if (!file) {
+           // ຮັກສາໄຟລ໌ເກົ່າໄວ້ຖ້າບໍ່ໄດ້ອັບໂຫຼດໃໝ່
+           if (!file && db.transactions[idx].fileUrl) {
                t.fileUrl = db.transactions[idx].fileUrl;
                t.fileName = db.transactions[idx].fileName;
            }
@@ -1249,23 +1248,33 @@ window.saveTransaction = function() {
        db.transactions.push(t); 
        log('ADD', t.desc);
     }
+    
     saveDB(); 
     closeModal(); 
     showPage(currentPage);
     if(btn) btn.innerHTML = '💾 ບັນທຶກ';
+    
+    // ແຈ້ງເຕືອນວ່າສຳເລັດ
+    alert('ບັນທຶກຂໍ້ມູນສຳເລັດແລ້ວ!');
   };
 
+  // ຖ້າມີການແນບໄຟລ໌ ໃຫ້ອັບໂຫຼດກ່ອນ
   if (file) {
     if(btn) btn.innerHTML = '⏳ ກຳລັງອັບໂຫຼດ...';
-    const ref = storage.ref('receipts/' + Date.now() + '_' + file.name);
+    // ໃຊ້ຊື່ໂຟນເດີ ແລະ ຊື່ໄຟລ໌ທີ່ປອດໄພ
+    const safeFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+    const ref = storage.ref('receipts/' + Date.now() + '_' + safeFileName);
+    
     ref.put(file).then(snap => snap.ref.getDownloadURL()).then(url => {
-      t.fileUrl = url; t.fileName = file.name;
+      t.fileUrl = url; 
+      t.fileName = file.name;
       proceedSave();
     }).catch(err => {
       alert('ເກີດຂໍ້ຜິດພາດອັບໂຫຼດ: ' + err.message);
       if(btn) btn.innerHTML = '💾 ບັນທຶກ';
     });
   } else {
+    // ຖ້າບໍ່ມີໄຟລ໌ແນບ ໃຫ້ບັນທຶກເລີຍ
     proceedSave();
   }
 };

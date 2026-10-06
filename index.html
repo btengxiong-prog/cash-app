@@ -208,7 +208,7 @@ hr.sep{border:0;border-top:1px solid var(--border);margin:16px 0}
       </div>
     </div>
    </div>
-   <div class="modal-foot"><button type="button" class="btn btn-light" onclick="closeModal()">ຍົກເລີກ</button><button class="btn btn-primary">💾 ບັນທຶກ</button></div>
+   <div class="modal-foot"><button type="button" class="btn btn-light" onclick="closeModal()">ຍົກເລີກ</button><button type="submit" class="btn btn-primary">💾 ບັນທຶກ</button></div>
   </form>
  </div>
 </div>
@@ -1193,13 +1193,13 @@ function openTransactionModal(id=null){
 function closeModal(){document.getElementById('txModal').classList.remove('open')}
 
 document.getElementById('txForm').addEventListener('submit',e=>{
- e.preventDefault();
- const id=document.getElementById('txId').value;
- const oldT = id ? db.transactions.find(x=>x.id===id) : null;
+  e.preventDefault();
+  const id=document.getElementById('txId').value;
+  const oldT = id ? db.transactions.find(x=>x.id===id) : null;
  
- const t = {
-   id: id||crypto.randomUUID(),
-   type: document.getElementById('txType').value,
+  const t = {
+    id: id || ('tx_' + Date.now() + Math.random().toString(36).substring(2, 7)),
+    type: document.getElementById('txType').value,
    date: document.getElementById('txDate').value,
    ref: document.getElementById('txRef').value.trim(),
    fund: document.getElementById('txFund').value,
@@ -1300,7 +1300,7 @@ function openAccountModal(id=null){
 function closeAccountModal(){document.getElementById('accountModal').classList.remove('open')}
 document.getElementById('accountForm').addEventListener('submit',e=>{
  e.preventDefault();const id=document.getElementById('accId').value;
- const a={id:id||crypto.randomUUID(),code:document.getElementById('accCode').value.trim(),name:document.getElementById('accName').value.trim(),type:document.getElementById('accType').value,fund:document.getElementById('accFund').value,note:document.getElementById('accNote').value.trim()};
+ const a={id:id || ('acc_' + Date.now() + Math.random().toString(36).substring(2, 7)),code:document.getElementById('accCode').value.trim(),name:document.getElementById('accName').value.trim(),type:document.getElementById('accType').value,fund:document.getElementById('accFund').value,note:document.getElementById('accNote').value.trim()};
  if(!a.code||!a.name){alert('ກະລຸນາປ້ອນລະຫັດ ແລະ ຊື່ບັນຊີ');return}
  if(id){db.accounts[db.accounts.findIndex(x=>x.id===id)]=a}else db.accounts.push(a);
  saveDB();closeAccountModal();showPage('accounts');

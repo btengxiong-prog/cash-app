@@ -1193,89 +1193,81 @@ function openTransactionModal(id=null){
 function closeModal(){document.getElementById('txModal').classList.remove('open')}
 
 window.saveTransaction = function() {
-  const form = document.getElementById('txForm');
-  // ບັງຄັບໃຫ້ບຣາວເຊີແຈ້ງເຕືອນ ຖ້າຊ່ອງທີ່ required ບໍ່ໄດ້ປ້ອນ
-  if(!form.checkValidity()) {
-     form.reportValidity(); 
-     return;
-  }
-  
-  const id = document.getElementById('txId').value;
-  // ໃຊ້ການປຽບທຽບທີ່ປອດໄພຂຶ້ນ ປ້ອງກັນກໍລະນີ x.id ເປັນ undefined
-  const oldT = id ? db.transactions.find(x => x && x.id && String(x.id).trim() === String(id).trim()) : null;
-  
-  const t = {
-    id: id || ('tx_' + Date.now() + Math.random().toString(36).substring(2, 7)),
-    type: document.getElementById('txType').value,
-    date: document.getElementById('txDate').value,
-    ref: document.getElementById('txRef').value.trim(),
-    fund: document.getElementById('txFund').value,
-    desc: document.getElementById('txDesc').value.trim(),
-    account: document.getElementById('txAccount').value,
-    amount: num(document.getElementById('txAmount').value),
-    note: document.getElementById('txNote').value.trim(),
-    status: document.getElementById('txType').value === 'payment' ? document.getElementById('txStatus').value : 'completed',
-    created: oldT ? oldT.created : Date.now(),
-    fileUrl: oldT ? oldT.fileUrl : null,
-    fileName: oldT ? oldT.fileName : null
-  };
-  
-  // ກວດສອບຄວາມຖືກຕ້ອງຂັ້ນສຸດທ້າຍກ່ອນບັນທຶກ
-  if(!t.amount || !t.desc || !t.date){
-      alert('ກະລຸນາປ້ອນ ວັນທີ, ເນື້ອໃນ ແລະ ຈຳນວນເງິນ ໃຫ້ຄົບຖ້ວນ'); 
-      return; 
-  }
-  
-  const btn = document.querySelector('#txForm .btn-primary');
-  const fileInput = document.getElementById('txFile');
-  const file = fileInput.files[0];
-
-  const proceedSave = () => {
-    if(id){
-       let idx = db.transactions.findIndex(x => x && x.id && String(x.id).trim() === String(id).trim());
-       if(idx !== -1) {
-           // ຮັກສາໄຟລ໌ເກົ່າໄວ້ຖ້າບໍ່ໄດ້ອັບໂຫຼດໃໝ່
-           if (!file && db.transactions[idx].fileUrl) {
-               t.fileUrl = db.transactions[idx].fileUrl;
-               t.fileName = db.transactions[idx].fileName;
-           }
-           db.transactions[idx] = t;
-       } else {
-           db.transactions.push(t);
-       }
-       log('EDIT', t.desc);
-    } else {
-       db.transactions.push(t); 
-       log('ADD', t.desc);
+  try {
+    const form = document.getElementById('txForm');
+    if(!form.checkValidity()) {
+       form.reportValidity(); 
+       return;
     }
     
-    saveDB(); 
-    closeModal(); 
-    showPage(currentPage);
-    if(btn) btn.innerHTML = '💾 ບັນທຶກ';
+    const id = document.getElementById('txId').value;
+    const oldIdx = id ? db.transactions.findIndex(x => x && x.id && String(x.id).trim() === String(id).trim()) : -1;
+    const oldT = oldIdx !== -1 ? db.transactions[oldIdx] : null;
     
-    // ແຈ້ງເຕືອນວ່າສຳເລັດ
-    alert('ບັນທຶກຂໍ້ມູນສຳເລັດແລ້ວ!');
-  };
+    // ແກ້ໄຂຈຸດນີ້: ບັງຄັບປ່ຽນ undefined ໃຫ້ເປັນ null ສະເໝີ
+    const t = {
+      id: id || ('tx_' + Date.now() + Math.random().toString(36).substring(2, 7)),
+      type: document.getElementById('txType').value,
+      date: document.getElementById('txDate').value,
+      ref: document.getElementById('txRef').value.trim(),
+      fund: document.getElementById('txFund').value,
+      desc: document.getElementById('txDesc').value.trim(),
+      account: document.getElementById('txAccount').value,
+      amount: num(document.getElementById('txAmount').value),
+      note: document.getElementById('txNote').value.trim(),
+      status: document.getElementById('txType').value === 'payment' ? document.getElementById('txStatus').value : 'completed',
+      created: (oldT && oldT.created) ? oldT.created : Date.now(),
+      fileUrl: (oldT && oldT.fileUrl) ? oldT.fileUrl : null,
+      fileName: (oldT && oldT.fileName) ? oldT.fileName : null
+    };
+    
+    if(!t.amount || !t.desc || !t.date){
+        alert('ກະລຸນາປ້ອນ ວັນທີ, ເນື້ອໃນ ແລະ ຈຳນວນເງິນ ໃຫ້ຄົບຖ້ວນ'); 
+        return; 
+    }
+    
+    const btn = document.querySelector('#txForm .btn-primary');
+    const fileInput = document.getElementById('txFile');
+    const file = fileInput.files[0];
 
-  // ຖ້າມີການແນບໄຟລ໌ ໃຫ້ອັບໂຫຼດກ່ອນ
-  if (file) {
-    if(btn) btn.innerHTML = '⏳ ກຳລັງອັບໂຫຼດ...';
-    // ໃຊ້ຊື່ໂຟນເດີ ແລະ ຊື່ໄຟລ໌ທີ່ປອດໄພ
-    const safeFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-    const ref = storage.ref('receipts/' + Date.now() + '_' + safeFileName);
-    
-    ref.put(file).then(snap => snap.ref.getDownloadURL()).then(url => {
-      t.fileUrl = url; 
-      t.fileName = file.name;
-      proceedSave();
-    }).catch(err => {
-      alert('ເກີດຂໍ້ຜິດພາດອັບໂຫຼດ: ' + err.message);
+    const proceedSave = () => {
+      if(id && oldIdx !== -1){
+         db.transactions[oldIdx] = t;
+         log('EDIT', t.desc);
+      } else {
+         db.transactions.push(t); 
+         log('ADD', t.desc);
+      }
+      
+      // ທຳຄວາມສະອາດຂໍ້ມູນ (ລຶບທຸກ property ທີ່ເປັນ undefined ຖິ້ມອັດຕະໂນມັດກ່ອນສົ່ງໃຫ້ Firebase)
+      db = JSON.parse(JSON.stringify(db));
+      
+      saveDB(); 
+      closeModal(); 
+      showPage(currentPage);
       if(btn) btn.innerHTML = '💾 ບັນທຶກ';
-    });
-  } else {
-    // ຖ້າບໍ່ມີໄຟລ໌ແນບ ໃຫ້ບັນທຶກເລີຍ
-    proceedSave();
+      alert('ບັນທຶກຂໍ້ມູນສຳເລັດແລ້ວ!');
+    };
+
+    if (file) {
+      if(btn) btn.innerHTML = '⏳ ກຳລັງອັບໂຫຼດ...';
+      const safeFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+      const ref = storage.ref('receipts/' + Date.now() + '_' + safeFileName);
+      
+      ref.put(file).then(snap => snap.ref.getDownloadURL()).then(url => {
+        t.fileUrl = url; 
+        t.fileName = file.name;
+        proceedSave();
+      }).catch(err => {
+        alert('ເກີດຂໍ້ຜິດພາດອັບໂຫຼດ: ' + err.message);
+        if(btn) btn.innerHTML = '💾 ບັນທຶກ';
+      });
+    } else {
+      proceedSave();
+    }
+  } catch (err) {
+    console.error("Save Error:", err);
+    alert("ເກີດຂໍ້ຜິດພາດໃນການບັນທຶກ: " + err.message);
   }
 };
 

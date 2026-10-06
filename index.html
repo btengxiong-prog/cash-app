@@ -1231,8 +1231,15 @@ window.saveTransaction = function() {
 
   const proceedSave = () => {
     if(id){
-       let idx = db.transactions.findIndex(x => String(x.id) === String(id));
+       // ປ່ຽນມາໃຊ້ການປຽບທຽບ String ທັງສອງເບື້ອງຢ່າງເຂັ້ມງວດ
+       let idx = db.transactions.findIndex(x => String(x.id).trim() === String(id).trim());
        if(idx !== -1) {
+           // ຮັກສາຄ່າ created ແລະ ໄຟລ໌ເກົ່າໄວ້
+           t.created = db.transactions[idx].created;
+           if (!file) {
+               t.fileUrl = db.transactions[idx].fileUrl;
+               t.fileName = db.transactions[idx].fileName;
+           }
            db.transactions[idx] = t;
        } else {
            db.transactions.push(t);

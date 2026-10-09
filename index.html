@@ -193,6 +193,15 @@ hr.sep{border:0;border-top:1px solid var(--border);margin:16px 0}
       <div class="field full"><label>ເນື້ອໃນລາຍການ *</label><input id="txDesc" required placeholder="ລາຍລະອຽດການຮັບ ຫຼື ຈ່າຍ"></div>
       <div class="field"><label>ບັນຊີ/ລະຫັດ</label><select id="txAccount"></select></div>
       <div class="field"><label>ຈຳນວນເງິນ (ກີບ) *</label><input id="txAmount" type="text" inputmode="numeric" required oninput="this.value = this.value.replace(/[^0-9]/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, ',')"></div>
+      <div class="field">
+        <label>ຜູ້ອະນຸມັດເງິນ</label>
+        <select id="txApprover">
+          <option value="">— ບໍ່ເລືອກ —</option>
+          <option value="ຫົວໜ້າພະແນກ">ຫົວໜ້າພະແນກ</option>
+          <option value="ຮອງຫົວໜ້າພະແນກ">ຮອງຫົວໜ້າພະແນກ</option>
+          <option value="ຫົວໜ້າຂະແໜງ">ຫົວໜ້າຂະແໜງ</option>
+        </select>
+      </div>
       <div class="field" id="txStatusWrapper" style="display:none;">
         <label>ສະຖານະຈ່າຍເງິນ</label>
         <select id="txStatus">
@@ -1178,7 +1187,7 @@ function openTransactionModal(id=null){
  if(id){
    const t=db.transactions.find(x=>x.id===id);
    if(t){
-  ['type','date','ref','fund','desc','account','amount','note','status'].forEach(k=>{
+  ['type','date','ref','fund','desc','account','amount','note','status','approver'].forEach(k=>{
              if(document.getElementById('tx'+k[0].toUpperCase()+k.slice(1))) document.getElementById('tx'+k[0].toUpperCase()+k.slice(1)).value=t[k]??'';
            });
            // ເພີ່ມການຈັດຮູບແບບຕົວເລກໃຫ້ມີຈຸດຈຸລະພາກຕອນກົດແກ້ໄຂ
@@ -1216,6 +1225,7 @@ window.saveTransaction = function() {
       amount: num(document.getElementById('txAmount').value),
       note: document.getElementById('txNote').value.trim(),
       status: document.getElementById('txType').value === 'payment' ? document.getElementById('txStatus').value : 'completed',
+      approver: document.getElementById('txApprover').value,
       created: (oldT && oldT.created) ? oldT.created : Date.now(),
       fileUrl: (oldT && oldT.fileUrl) ? oldT.fileUrl : null,
       fileName: (oldT && oldT.fileName) ? oldT.fileName : null
@@ -1303,7 +1313,7 @@ function printVoucher(id) {
     <div class="voucher-row"><div class="voucher-label">ແຫຼ່ງທຶນ/ໝວດເງິນ:</div><div class="voucher-value">${fundName(t.fund)}</div></div>
     <div class="voucher-signs">
       <div><b>ຫົວໜ້າໜ່ວຍງານ</b><br><br><br><br>( ....................................... )</div>
-      <div><b>ຜູ້ອະນຸມັດ/ນາຍຄັງ</b><br><br><br><br>( ....................................... )</div>
+      <div><b>ຜູ້ອະນຸມັດ/ນາຍຄັງ</b><br><br><br><br>( ${t.approver || '.......................................'} )</div>
       <div><b>ຜູ້${t.type === 'receipt' ? 'ມອບ' : 'ຮັບ'}ເງິນ</b><br><br><br><br>( ....................................... )</div>
     </div>`;
   

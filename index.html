@@ -163,6 +163,7 @@ hr.sep{border:0;border-top:1px solid var(--border);margin:16px 0}
     <button data-page="cashbook">📒 ປື້ມຄັງເງິນສົດ</button>
     <button data-page="transactions">🧾 ບັນທຶກຮັບ–ຈ່າຍ</button>
     <button data-page="accounts">📚 ໂຄງບັນຊີ</button>
+    <button data-page="approvers">✍️ ຜູ້ສັ່ງການ/ອະນຸມັດ</button>
     <button data-page="reports">📊 ລາຍງານ</button>
     <button data-page="settings">⚙️ ຕັ້ງຄ່າ</button>
   </div>
@@ -237,7 +238,18 @@ hr.sep{border:0;border-top:1px solid var(--border);margin:16px 0}
   </form>
  </div>
 </div>
-
+<div class="modal" id="approverModal">
+ <div class="modal-box" style="width: min(500px, 100%);">
+  <div class="modal-head"><h3>ເພີ່ມ/ແກ້ໄຂ ຜູ້ສັ່ງການ/ອະນຸມັດ</h3><button class="btn btn-light" onclick="closeApproverModal()">✕</button></div>
+  <form id="approverForm">
+   <div class="modal-body"><input type="hidden" id="apprId"><div class="form-grid" style="grid-template-columns: 1fr;">
+    <div class="field"><label>ຊື່ ແລະ ນາມສະກຸນ *</label><input id="apprName" required placeholder="ຕົວຢ່າງ: ທ່ານ ສົມຊາຍ ໃຈດີ"></div>
+    <div class="field"><label>ຕຳແໜ່ງ *</label><input id="apprPosition" required placeholder="ຕົວຢ່າງ: ຫົວໜ້າພະແນກ"></div>
+   </div></div>
+   <div class="modal-foot"><button type="button" class="btn btn-light" onclick="closeApproverModal()">ຍົກເລີກ</button><button type="submit" class="btn btn-primary">💾 ບັນທຶກ</button></div>
+  </form>
+ </div>
+</div>
 <div class="modal" id="importModal">
  <div class="modal-box">
   <div class="modal-head"><h3>📋 ນຳເຂົ້າຂໍ້ມູນ (ກ໋ອບປີ້ຈາກ Excel ມາວາງ)</h3><button class="btn btn-light" onclick="closeImportModal()">✕</button></div>
@@ -340,6 +352,7 @@ function loadDB() {
       if (!parsed.transactions) parsed.transactions = [];
       if (!parsed.funds) parsed.funds = defaultFunds;
       if (!parsed.accounts) parsed.accounts = defaultAccounts;
+      if (!parsed.approvers) parsed.approvers = [];
       if (!parsed.audit) parsed.audit = [];
       if (!parsed.settings) parsed.settings = {orgName:'ຫ້ອງການ/ໜ່ວຍງານ',currency:'ກີບ',opening:{budget:0,academic:0,support:0,fee:0}};
       if (!parsed.users) parsed.users = defaultUsers; // <== ເພີ່ມບ່ອນນີ້
@@ -348,7 +361,7 @@ function loadDB() {
   } catch (e) {
     console.error("Local storage error:", e);
   }
-  return {settings:{orgName:'ຫ້ອງການ/ໜ່ວຍງານ',currency:'ກີບ',opening:{budget:0,academic:0,support:0,fee:0}},funds:defaultFunds,accounts:defaultAccounts,transactions:[],audit:[],users:defaultUsers};
+  return {settings:{orgName:'ຫ້ອງການ/ໜ່ວຍງານ',currency:'ກີບ',opening:{budget:0,academic:0,support:0,fee:0}},funds:defaultFunds,accounts:defaultAccounts,approvers:[],transactions:[],audit:[],users:defaultUsers};
 }
 
 // --- ລະບົບ USER & LOGIN ---
@@ -440,6 +453,8 @@ database.ref('treasury_data').on('value', (snapshot) => {
     let tempAccs = toArray(data.accounts);
     db.accounts = tempAccs.length > 0 ? tempAccs : defaultAccounts;
     
+    db.approvers = toArray(data.approvers);
+    
     db.audit = toArray(data.audit);
     
     localStorage.setItem(KEY, JSON.stringify(db));
@@ -455,6 +470,8 @@ database.ref('treasury_data').on('value', (snapshot) => {
         renderDashboard();
       } else if (currentPage === 'accounts' && document.getElementById('content')) {
         renderAccounts();
+      } else if (currentPage === 'approvers' && document.getElementById('content')) {
+        renderApprovers();
       }
     } catch (err) {
       console.error("UI Update Error:", err);
@@ -496,7 +513,7 @@ document.querySelectorAll('.nav button').forEach(b=>b.addEventListener('click',(
 function showPage(page){
  currentPage=page;
  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
- const titles={dashboard:'ໜ້າຫຼັກ',cashbook:'',transactions:'ບັນທຶກຮັບ–ຈ່າຍ',accounts:'ໂຄງບັນຊີ',reports:'ລາຍງານ',settings:'ຕັ້ງຄ່າ'};
+ const titles={dashboard:'ໜ້າຫຼັກ',cashbook:'',transactions:'ບັນທຶກຮັບ–ຈ່າຍ',accounts:'ໂຄງບັນຊີ',approvers:'ຜູ້ສັ່ງການ/ອະນຸມັດ',reports:'ລາຍງານ',settings:'ຕັ້ງຄ່າ'};
  document.getElementById('pageTitle').textContent=titles[page];
  
  // ເຊື່ອງຫົວຂໍ້ໜ້າ ແລະ ວັນທີເບື້ອງຊ້າຍ ຖ້າເປັນໜ້າປື້ມຄັງເງິນສົດ (ເພື່ອໃຫ້ເຫຼືອແຕ່ປຸ່ມເບື້ອງຂວາ)
@@ -513,7 +530,7 @@ function showPage(page){
  }
  document.querySelector('.topbar .actions').innerHTML = topbarHtml;
  
- ({dashboard:renderDashboard,cashbook:renderCashbook,transactions:renderTransactions,accounts:renderAccounts,reports:renderReports,settings:renderSettings}[page])();
+ ({dashboard:renderDashboard,cashbook:renderCashbook,transactions:renderTransactions,accounts:renderAccounts,approvers:renderApprovers,reports:renderReports,settings:renderSettings}[page])();
 }
 
 function totals(){
@@ -1177,7 +1194,7 @@ function fillAccounts(){
  s.innerHTML='<option value="">— ເລືອກບັນຊີ —</option>'+db.accounts.map(a=>`<option value="${a.id}">${esc(a.code)} — ${esc(a.name)}</option>`).join('');
 }
 function openTransactionModal(id=null){
- fillFunds('txFund');fillAccounts();document.getElementById('txForm').reset();
+ fillFunds('txFund');fillAccounts();fillApprovers();document.getElementById('txForm').reset();
  document.getElementById('txId').value=id||'';document.getElementById('txDate').value=today();document.getElementById('txModalTitle').textContent=id?'ແກ້ໄຂລາຍການ':'ບັນທຶກຮັບ–ຈ່າຍ';
  document.getElementById('txFilePreview').innerHTML = '';
  
@@ -1388,7 +1405,93 @@ function resetData(){
     showPage('dashboard');
   });
 }
+// ================= APPROVERS MANAGEMENT SYSTEM =================
+function renderApprovers(){
+ let topbarActions = '';
+ if(currentUser.role === 'admin') {
+   topbarActions += `<button class="btn btn-primary no-print" onclick="openApproverModal()">＋ ເພີ່ມຜູ້ອະນຸມັດ</button>`;
+ }
+ topbarActions += `<button class="btn btn-light" onclick="backupData()">💾 Backup</button>`;
+ document.querySelector('.topbar .actions').innerHTML = topbarActions;
 
+ let thead = `<tr><th>ລ/ດ</th><th>ຊື່ ແລະ ນາມສະກຸນ</th><th>ຕຳແໜ່ງ</th>`;
+ if(currentUser.role === 'admin') thead += `<th class="no-print">ຈັດການ</th>`;
+ thead += `</tr>`;
+
+ let tbody = (db.approvers || []).map((a, i) => {
+   let row = `<tr><td class="center">${i+1}</td><td><b>${esc(a.name)}</b></td><td>${esc(a.position)}</td>`;
+   if (currentUser.role === 'admin') {
+     row += `<td class="no-print"><button class="btn btn-light" onclick="editApprover('${a.id}')">ແກ້</button> <button class="btn btn-danger" onclick="deleteApprover('${a.id}')">ລົບ</button></td>`;
+   }
+   row += `</tr>`;
+   return row;
+ }).join('');
+
+ if(!tbody) tbody = '<tr><td colspan="4" class="center muted" style="padding: 20px;">ຍັງບໍ່ມີຂໍ້ມູນຜູ້ອະນຸມັດ</td></tr>';
+
+ document.getElementById('content').innerHTML=`
+ <div class="panel" style="margin-top:0;">
+  <div class="table-wrap"><table><thead>${thead}</thead><tbody>${tbody}</tbody></table></div></div></div>`;
+}
+
+function openApproverModal(id=null){
+ document.getElementById('approverForm').reset();
+ document.getElementById('apprId').value = id || '';
+ if(id){
+   const a = (db.approvers || []).find(x => x.id === id);
+   if(a){
+     document.getElementById('apprName').value = a.name;
+     document.getElementById('apprPosition').value = a.position;
+   }
+ }
+ document.getElementById('approverModal').classList.add('open');
+}
+
+function closeApproverModal(){
+ document.getElementById('approverModal').classList.remove('open');
+}
+
+document.getElementById('approverForm').addEventListener('submit', e => {
+ e.preventDefault();
+ const id = document.getElementById('apprId').value;
+ const a = {
+   id: id || ('appr_' + Date.now() + Math.random().toString(36).substring(2, 7)),
+   name: document.getElementById('apprName').value.trim(),
+   position: document.getElementById('apprPosition').value.trim()
+ };
+ if(!a.name || !a.position){ alert('ກະລຸນາປ້ອນຂໍ້ມູນໃຫ້ຄົບຖ້ວນ'); return; }
+ 
+ if(!db.approvers) db.approvers = [];
+ 
+ if(id){
+   const idx = db.approvers.findIndex(x => x.id === id);
+   if(idx > -1) db.approvers[idx] = a;
+ } else {
+   db.approvers.push(a);
+ }
+ saveDB();
+ closeApproverModal();
+ showPage('approvers');
+});
+
+function editApprover(id){ openApproverModal(id); }
+
+function deleteApprover(id){
+  const a = db.approvers.find(x => x.id === id); 
+  if(!a) return;
+  myConfirm(`ທ່ານຕ້ອງການລຶບລາຍຊື່:\n"${a.name}" ແທ້ບໍ່?`, () => {
+    db.approvers = db.approvers.filter(x => x.id !== id);
+    saveDB(); 
+    showPage('approvers');
+  });
+}
+
+function fillApprovers(){
+ const s = document.getElementById('txApprover');
+ if(!s) return;
+ s.innerHTML = '<option value="">— ບໍ່ເລືອກ —</option>' + (db.approvers || []).map(a => `<option value="${a.name}">${esc(a.name)} - ${esc(a.position)}</option>`).join('');
+}
+// ===============================================================
 showPage('dashboard');
 
 function openImportModal(){
